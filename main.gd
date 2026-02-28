@@ -16,22 +16,19 @@ var next_day_btn: Button
 var is_board_finished = false
 var is_on_map = false
 var is_switch_hovered = false
-var is_map_completed = false # 【新增】追蹤地圖事件是否走完
+var is_map_completed = false 
 
 func _ready():
-	self.set_anchors_preset(Control.PRESET_FULL_RECT)
-	
+	# 移除原本不穩定的 anchors，改用 _on_window_resized 動態撐滿
 	top_bar = VBoxContainer.new() 
 	top_bar.position = Vector2(20, 20)
 	top_bar.add_theme_constant_override("separation", 15) 
 	top_bar.z_index = 90 
 	add_child(top_bar)
 	
-	# --- 帳號資料按鈕 ---
 	profile_btn = Button.new()
 	profile_btn.text = "👤"
 	profile_btn.custom_minimum_size = Vector2(50, 50)
-	# 【修改】讓按鈕對齊左側，伸展時獨立運作不推擠
 	profile_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN 
 	profile_btn.add_theme_font_size_override("font_size", 20)
 	profile_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -40,7 +37,6 @@ func _ready():
 	profile_btn.mouse_exited.connect(func(): profile_btn.text = "👤")
 	top_bar.add_child(profile_btn)
 	
-	# --- 切換板塊按鈕 ---
 	switch_btn = Button.new()
 	switch_btn.text = "🗺️"
 	switch_btn.custom_minimum_size = Vector2(50, 50)
@@ -72,7 +68,6 @@ func _ready():
 	_on_window_resized()
 	
 	todo_board.finish_btn.pressed.connect(_on_todo_finished)
-	# 【新增】接收地圖走完的訊號
 	map_board.board_completed.connect(_on_map_completed) 
 	
 	sync_all_data()
@@ -88,6 +83,7 @@ func update_switch_btn_text():
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
+	self.size = screen_size # 【關鍵修改】強制 Main 撐滿螢幕
 	if next_day_btn:
 		next_day_btn.position = screen_size - next_day_btn.size - Vector2(40, 40)
 
@@ -118,7 +114,6 @@ func _on_switch_pressed():
 		todo_board.hide()
 		map_board.show()
 		
-		# 只有在已經擲過骰子且走完的情況下，切過來才顯示結束按鈕
 		if is_map_completed:
 			next_day_btn.show()
 		else:
@@ -142,9 +137,7 @@ func _on_todo_finished():
 	update_switch_btn_text()
 	
 	map_board.activate_dice()
-	# 【修改】這裡拿掉了顯示 next_day_btn，強迫玩家必須先點擊骰子
 
-# 【新增】等待地圖發送走完的訊號，才顯示結束按鈕
 func _on_map_completed():
 	is_map_completed = true
 	if is_on_map:

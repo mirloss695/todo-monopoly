@@ -22,24 +22,32 @@ var warning_dialog: AcceptDialog
 var board_status_label: Label 
 
 func _ready():
-	self.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# 【修改】移除不穩定的 anchors，改為嚴格跟隨視窗大小
+	get_viewport().size_changed.connect(_on_window_resized)
 	daily_points_limit = current_stage * 100
 	setup_ui()
+	_on_window_resized() # 遊戲開始時強制計算一次大小
 	add_task_row()
+
+func _on_window_resized():
+	var screen_size = get_viewport_rect().size
+	self.size = screen_size # 【關鍵修改】讓面板永遠等同於螢幕大小
+	if bg:
+		bg.size = screen_size
+	if margin:
+		margin.size = screen_size
 
 func setup_ui():
 	bg = ColorRect.new()
 	bg.color = Color("#2C2C2C")
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	
 	margin = MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# 【修改】加大 Top Margin 徹底避開按鈕，左右維持平衡置中，Bottom 壓到底部
 	margin.add_theme_constant_override("margin_top", 120)    
 	margin.add_theme_constant_override("margin_left", 80)   
 	margin.add_theme_constant_override("margin_right", 80)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	# 【修改】讓按鈕壓在距離視窗底部 40px 的位置，釋放極大空間給任務列
+	margin.add_theme_constant_override("margin_bottom", 40)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
@@ -80,7 +88,7 @@ func setup_ui():
 	main_vbox.add_child(title_hbox)
 	
 	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL 
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL # 現在這個屬性終於能正常發揮作用了！
 	scroll.custom_minimum_size = Vector2(0, 150) 
 	tasks_container = VBoxContainer.new()
 	tasks_container.size_flags_horizontal = SIZE_EXPAND_FILL
