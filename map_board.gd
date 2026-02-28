@@ -49,6 +49,8 @@ func _ready():
 	add_child(map_root)
 	
 	get_viewport().size_changed.connect(_on_window_resized)
+	# 【修復 Bug】讓 CanvasLayer UI 跟隨 MapBoard 一起顯示/隱藏
+	self.visibility_changed.connect(_on_visibility_changed) 
 	
 	setup_ui()
 	generate_chance_tiles()
@@ -56,6 +58,10 @@ func _ready():
 	create_player()
 	
 	_on_window_resized()
+
+func _on_visibility_changed():
+	if ui_layer:
+		ui_layer.visible = self.visible
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
@@ -66,7 +72,8 @@ func _on_window_resized():
 	if event_panel:
 		event_panel.position = (screen_size - event_panel.size) / 2.0
 	if roll_dice_btn:
-		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y - 120)
+		# 【修改】將擲骰子按鈕往畫面中間靠攏 (0.55 代表畫面垂直 55% 的位置)
+		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y * 0.55)
 
 func setup_ui():
 	ui_layer = CanvasLayer.new()
@@ -273,7 +280,6 @@ func show_chance_wheel():
 		3: total_score += m; is_event_active = false
 		4: total_score -= m; is_event_active = false
 
-# 【修改】嚴格限制：只有在視窗彈出並等待玩家按鈕時，空白鍵才會生效
 func _input(event):
 	if event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:
 		if is_waiting_confirm:

@@ -8,35 +8,53 @@ var global_stage = 1
 @onready var map_board = $MapBoard
 @onready var profile_board = $UserProfile
 
-var top_bar: VBoxContainer # 【修改】改為垂直容器
+var top_bar: VBoxContainer 
 var profile_btn: Button
 var switch_btn: Button
 var next_day_btn: Button
 
+# --- 狀態追蹤 ---
+var is_board_finished = false
+var is_on_map = false
+var is_switch_hovered = false
+
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
-	# --- 頂部常駐按鈕列 (改為上下排列) ---
 	top_bar = VBoxContainer.new() 
 	top_bar.position = Vector2(20, 20)
-	top_bar.add_theme_constant_override("separation", 15) # 設定上下間距
+	top_bar.add_theme_constant_override("separation", 15) 
 	top_bar.z_index = 90 
 	add_child(top_bar)
 	
+	# --- 帳號資料按鈕 (動態 Hover) ---
 	profile_btn = Button.new()
-	profile_btn.text = "👤 帳號資料"
-	profile_btn.custom_minimum_size = Vector2(160, 50)
+	profile_btn.text = "👤"
+	profile_btn.custom_minimum_size = Vector2(50, 50)
 	profile_btn.add_theme_font_size_override("font_size", 20)
 	profile_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	profile_btn.pressed.connect(_on_profile_pressed)
+	# 滑鼠移入展開，移出縮回
+	profile_btn.mouse_entered.connect(func(): profile_btn.text = "👤 帳號資料")
+	profile_btn.mouse_exited.connect(func(): profile_btn.text = "👤")
 	top_bar.add_child(profile_btn)
 	
+	# --- 切換板塊按鈕 (動態 Hover) ---
 	switch_btn = Button.new()
-	switch_btn.text = "🗺️ 切換至地圖"
-	switch_btn.custom_minimum_size = Vector2(180, 50)
+	switch_btn.text = "🗺️"
+	switch_btn.custom_minimum_size = Vector2(50, 50)
 	switch_btn.add_theme_font_size_override("font_size", 20)
 	switch_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	switch_btn.pressed.connect(_on_switch_pressed)
+	# 滑鼠移入展開，移出縮回 (需判斷目前在哪個板塊)
+	switch_btn.mouse_entered.connect(func(): 
+		is_switch_hovered = true
+		update_switch_btn_text()
+	)
+	switch_btn.mouse_exited.connect(func(): 
+		is_switch_hovered = false
+		update_switch_btn_text()
+	)
 	top_bar.add_child(switch_btn)
 	
 	# --- 右下角「下一天」按鈕 ---
@@ -59,6 +77,13 @@ func _ready():
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
+
+# --- 輔助函數：根據狀態更新切換按鈕文字 ---
+func update_switch_btn_text():
+	if is_switch_hovered:
+		switch_btn.text = "📝 切換回任務" if is_on_map else "🗺️ 切換至地圖"
+	else:
+		switch_btn.text = "📝" if is_on_map else "🗺️"
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
@@ -85,26 +110,33 @@ func _on_profile_pressed():
 	profile_board.show()
 
 func _on_switch_pressed():
-	if todo_board.visible:
+	if not is_on_map: # 準備切換至【地圖】
 		if todo_board.is_editing:
 			todo_board.warning_dialog.dialog_text = "⚠️ 請先點擊「確認儲存」\n儲存變更後才能切換至地圖板塊！"
 			todo_board.warning_dialog.popup_centered()
 			return
+		is_on_map = true
 		todo_board.hide()
 		map_board.show()
-		switch_btn.text = "📝 切換回任務"
-	else:
+		if is_board_finished:
+			next_day_btn.show() # 如果已經結算了，切過來就要顯示結束按鈕
+	else: # 準備切換回【任務】
+		is_on_map = false
 		map_board.hide()
+		next_day_btn.hide() # 【修復 Bug】切回任務時必須強制隱藏結束按鈕
 		todo_board.show()
-		switch_btn.text = "🗺️ 切換至地圖"
+	
+	update_switch_btn_text()
 
 func _on_todo_finished():
 	global_score = todo_board.total_accumulated_score
+	is_board_finished = true # 標記今天已結算
 	sync_all_data()
 	
+	is_on_map = true
 	todo_board.hide()
 	map_board.show()
-	switch_btn.text = "📝 切換回任務"
+	update_switch_btn_text()
 	
 	map_board.activate_dice()
 	next_day_btn.show()
@@ -112,11 +144,13 @@ func _on_todo_finished():
 func _on_next_day_pressed():
 	global_score = map_board.total_score
 	global_day += 1 
+	is_board_finished = false
+	is_on_map = false
 	sync_all_data()
 	
 	map_board.hide()
 	next_day_btn.hide()
-	switch_btn.text = "🗺️ 切換至地圖"
+	update_switch_btn_text()
 	
 	if todo_board.has_method("reset_for_new_day"):
 		todo_board.reset_for_new_day()

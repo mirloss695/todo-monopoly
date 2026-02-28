@@ -33,13 +33,14 @@ func setup_ui():
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	
-	# 【修改】完全交給錨點系統排版，不強加螢幕大小，按鈕就不會被切掉
 	margin = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_top", 90)    
-	margin.add_theme_constant_override("margin_left", 60)   
-	margin.add_theme_constant_override("margin_right", 60)
-	margin.add_theme_constant_override("margin_bottom", 40)
+	# 【修改】整體往左移：左邊距調小，右邊距調大
+	margin.add_theme_constant_override("margin_left", 30)   
+	margin.add_theme_constant_override("margin_right", 90)
+	# 【修改】整體按鈕往下壓：底部邊距調小到 15
+	margin.add_theme_constant_override("margin_bottom", 15)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
@@ -64,7 +65,6 @@ func setup_ui():
 	main_vbox.add_child(board_status_label)
 	
 	var title_hbox = HBoxContainer.new()
-	# 【修改】加入編號欄位，並微調排版寬度
 	var titles = ["編號", "", "任務內容", "分配點數", "加權(1-5)", "任務得分", ""]
 	var widths = [50, 60, 400, 120, 120, 120, 100] 
 	for i in range(titles.size()):
@@ -82,7 +82,7 @@ func setup_ui():
 	
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL 
-	scroll.custom_minimum_size = Vector2(0, 150) # 【修改】縮小最小高度避免擠壓按鈕
+	scroll.custom_minimum_size = Vector2(0, 150) 
 	tasks_container = VBoxContainer.new()
 	tasks_container.size_flags_horizontal = SIZE_EXPAND_FILL
 	scroll.add_child(tasks_container)
@@ -127,7 +127,6 @@ func setup_ui():
 	ok_btn.add_theme_font_size_override("font_size", 18)
 	ok_btn.custom_minimum_size = Vector2(100, 40)
 
-# --- 動態更新任務編號 ---
 func update_task_numbers():
 	for i in range(task_rows.size()):
 		task_rows[i]["num_lbl"].text = str(i + 1) + "."
@@ -138,7 +137,6 @@ func add_task_row():
 	var row = HBoxContainer.new()
 	var row_data = {} 
 	
-	# 【新增】任務編號標籤
 	var num_lbl = Label.new()
 	num_lbl.custom_minimum_size = Vector2(50, 0)
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -197,7 +195,7 @@ func add_task_row():
 	row.add_child(del_btn)
 	
 	row_data["row_node"] = row
-	row_data["num_lbl"] = num_lbl # 記錄編號標籤
+	row_data["num_lbl"] = num_lbl 
 	row_data["checkbox"] = checkbox
 	row_data["check_mark"] = check_mark
 	row_data["line_edit"] = line_edit
@@ -211,7 +209,7 @@ func add_task_row():
 	
 	tasks_container.add_child(row)
 	task_rows.append(row_data)
-	update_task_numbers() # 每次新增後更新編號
+	update_task_numbers() 
 
 func _on_delete_task(row_data: Dictionary):
 	if row_data["is_completed"]:
@@ -220,7 +218,7 @@ func _on_delete_task(row_data: Dictionary):
 		return
 	row_data["row_node"].queue_free() 
 	task_rows.erase(row_data)
-	update_task_numbers() # 刪除後重新計算編號
+	update_task_numbers() 
 
 func update_score_display():
 	score_label.text = "🏆 目前累計分數: %d  |  🌟 本日總分: %d" % [total_accumulated_score, today_total_score]
