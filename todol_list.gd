@@ -22,32 +22,29 @@ var warning_dialog: AcceptDialog
 var board_status_label: Label 
 
 func _ready():
-	get_viewport().size_changed.connect(_on_window_resized)
+	# 【關鍵修復】確保根節點錨點填滿全螢幕
+	self.set_anchors_preset(Control.PRESET_FULL_RECT)
 	daily_points_limit = current_stage * 100
 	setup_ui()
-	_on_window_resized() 
 	add_task_row()
-
-func _on_window_resized():
-	var screen_size = get_viewport_rect().size
-	self.size = screen_size 
-	if bg:
-		bg.size = screen_size
-	if margin:
-		margin.size = screen_size
 
 func setup_ui():
 	bg = ColorRect.new()
 	bg.color = Color("#2C2C2C")
 	add_child(bg)
+	# 【關鍵修復】確保背景顏色完全填滿全螢幕，解決左上角破洞
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
 	margin = MarginContainer.new()
-	# 【修改】將頂部邊距調小至 30，讓標題與懸浮按鈕水平對齊
+	add_child(margin)
+	# 【關鍵修復】確保排版容器填滿全螢幕
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	# 這裡維持你上一步調整的完美邊距設定
 	margin.add_theme_constant_override("margin_top", 30)    
 	margin.add_theme_constant_override("margin_left", 80)   
 	margin.add_theme_constant_override("margin_right", 80)
 	margin.add_theme_constant_override("margin_bottom", 40)
-	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
 	main_vbox.add_theme_constant_override("separation", 20)
@@ -88,7 +85,7 @@ func setup_ui():
 	
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL 
-	scroll.custom_minimum_size = Vector2(0, 150) 
+	scroll.custom_minimum_size = Vector2(0, 250) 
 	tasks_container = VBoxContainer.new()
 	tasks_container.size_flags_horizontal = SIZE_EXPAND_FILL
 	scroll.add_child(tasks_container)
@@ -120,7 +117,10 @@ func setup_ui():
 	finish_btn.disabled = true 
 	finish_btn.pressed.connect(_on_finish_pressed)
 	btn_hbox.add_child(finish_btn)
-	
+	var spacer = Control.new()
+	# 這裡的 Y 值 (50) 可以根據你想下移的幅度自由調大
+	spacer.custom_minimum_size = Vector2(0, 10) 
+	main_vbox.add_child(spacer)
 	main_vbox.add_child(btn_hbox)
 	
 	warning_dialog = AcceptDialog.new()

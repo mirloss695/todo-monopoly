@@ -19,7 +19,8 @@ var is_switch_hovered = false
 var is_map_completed = false 
 
 func _ready():
-	# 移除原本不穩定的 anchors，改用 _on_window_resized 動態撐滿
+	self.set_anchors_preset(Control.PRESET_FULL_RECT)
+	
 	top_bar = VBoxContainer.new() 
 	top_bar.position = Vector2(20, 20)
 	top_bar.add_theme_constant_override("separation", 15) 
@@ -83,7 +84,7 @@ func update_switch_btn_text():
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
-	self.size = screen_size # 【關鍵修改】強制 Main 撐滿螢幕
+	# 【關鍵修復】拿掉會干擾 Godot 原生 Anchor 的手動尺寸設定
 	if next_day_btn:
 		next_day_btn.position = screen_size - next_day_btn.size - Vector2(40, 40)
 
