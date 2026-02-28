@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://d2ctule2sf88p"]
+
+[ext_resource type="Script" uid="uid://bh36chmrbc83v" path="res://user_profile.gd" id="1_g1qiq"]
+
+[node name="UserProfile" type="Control" unique_id=1930775711]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_g1qiq")
