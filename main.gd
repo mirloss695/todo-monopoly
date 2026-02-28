@@ -13,10 +13,10 @@ var profile_btn: Button
 var switch_btn: Button
 var next_day_btn: Button
 
-# --- 狀態追蹤 ---
 var is_board_finished = false
 var is_on_map = false
 var is_switch_hovered = false
+var is_map_completed = false # 【新增】追蹤地圖事件是否走完
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -27,26 +27,27 @@ func _ready():
 	top_bar.z_index = 90 
 	add_child(top_bar)
 	
-	# --- 帳號資料按鈕 (動態 Hover) ---
+	# --- 帳號資料按鈕 ---
 	profile_btn = Button.new()
 	profile_btn.text = "👤"
 	profile_btn.custom_minimum_size = Vector2(50, 50)
+	# 【修改】讓按鈕對齊左側，伸展時獨立運作不推擠
+	profile_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN 
 	profile_btn.add_theme_font_size_override("font_size", 20)
 	profile_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	profile_btn.pressed.connect(_on_profile_pressed)
-	# 滑鼠移入展開，移出縮回
 	profile_btn.mouse_entered.connect(func(): profile_btn.text = "👤 帳號資料")
 	profile_btn.mouse_exited.connect(func(): profile_btn.text = "👤")
 	top_bar.add_child(profile_btn)
 	
-	# --- 切換板塊按鈕 (動態 Hover) ---
+	# --- 切換板塊按鈕 ---
 	switch_btn = Button.new()
 	switch_btn.text = "🗺️"
 	switch_btn.custom_minimum_size = Vector2(50, 50)
+	switch_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN 
 	switch_btn.add_theme_font_size_override("font_size", 20)
 	switch_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	switch_btn.pressed.connect(_on_switch_pressed)
-	# 滑鼠移入展開，移出縮回 (需判斷目前在哪個板塊)
 	switch_btn.mouse_entered.connect(func(): 
 		is_switch_hovered = true
 		update_switch_btn_text()
@@ -57,7 +58,6 @@ func _ready():
 	)
 	top_bar.add_child(switch_btn)
 	
-	# --- 右下角「下一天」按鈕 ---
 	next_day_btn = Button.new()
 	next_day_btn.text = "🌙 結束今天，進入下一天"
 	next_day_btn.custom_minimum_size = Vector2(260, 60)
@@ -72,13 +72,14 @@ func _ready():
 	_on_window_resized()
 	
 	todo_board.finish_btn.pressed.connect(_on_todo_finished)
+	# 【新增】接收地圖走完的訊號
+	map_board.board_completed.connect(_on_map_completed) 
 	
 	sync_all_data()
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
 
-# --- 輔助函數：根據狀態更新切換按鈕文字 ---
 func update_switch_btn_text():
 	if is_switch_hovered:
 		switch_btn.text = "📝 切換回任務" if is_on_map else "🗺️ 切換至地圖"
@@ -94,10 +95,8 @@ func sync_all_data():
 	todo_board.total_accumulated_score = global_score
 	todo_board.current_stage = global_stage
 	todo_board.update_score_display()
-	
 	map_board.total_score = global_score
 	map_board.current_stage = global_stage
-	
 	profile_board.total_score = global_score
 	profile_board.current_stage = global_stage
 	profile_board.play_days = global_day
@@ -110,7 +109,7 @@ func _on_profile_pressed():
 	profile_board.show()
 
 func _on_switch_pressed():
-	if not is_on_map: # 準備切換至【地圖】
+	if not is_on_map: 
 		if todo_board.is_editing:
 			todo_board.warning_dialog.dialog_text = "⚠️ 請先點擊「確認儲存」\n儲存變更後才能切換至地圖板塊！"
 			todo_board.warning_dialog.popup_centered()
@@ -118,19 +117,23 @@ func _on_switch_pressed():
 		is_on_map = true
 		todo_board.hide()
 		map_board.show()
-		if is_board_finished:
-			next_day_btn.show() # 如果已經結算了，切過來就要顯示結束按鈕
-	else: # 準備切換回【任務】
+		
+		# 只有在已經擲過骰子且走完的情況下，切過來才顯示結束按鈕
+		if is_map_completed:
+			next_day_btn.show()
+		else:
+			next_day_btn.hide()
+	else: 
 		is_on_map = false
 		map_board.hide()
-		next_day_btn.hide() # 【修復 Bug】切回任務時必須強制隱藏結束按鈕
+		next_day_btn.hide() 
 		todo_board.show()
 	
 	update_switch_btn_text()
 
 func _on_todo_finished():
 	global_score = todo_board.total_accumulated_score
-	is_board_finished = true # 標記今天已結算
+	is_board_finished = true 
 	sync_all_data()
 	
 	is_on_map = true
@@ -139,13 +142,20 @@ func _on_todo_finished():
 	update_switch_btn_text()
 	
 	map_board.activate_dice()
-	next_day_btn.show()
+	# 【修改】這裡拿掉了顯示 next_day_btn，強迫玩家必須先點擊骰子
+
+# 【新增】等待地圖發送走完的訊號，才顯示結束按鈕
+func _on_map_completed():
+	is_map_completed = true
+	if is_on_map:
+		next_day_btn.show()
 
 func _on_next_day_pressed():
 	global_score = map_board.total_score
 	global_day += 1 
 	is_board_finished = false
 	is_on_map = false
+	is_map_completed = false 
 	sync_all_data()
 	
 	map_board.hide()

@@ -1,6 +1,7 @@
 extends Node2D
 
 signal user_confirmed
+signal board_completed # 【新增】告訴控制器事件已全數結束的訊號
 
 var tile_size = Vector2(120, 94) 
 var offset = Vector2(10, 10)
@@ -40,7 +41,6 @@ var roll_dice_btn: Button
 
 func _ready():
 	randomize()
-	
 	bg = ColorRect.new()
 	bg.color = Color("#EDE9E3")
 	add_child(bg)
@@ -49,7 +49,6 @@ func _ready():
 	add_child(map_root)
 	
 	get_viewport().size_changed.connect(_on_window_resized)
-	# 【修復 Bug】讓 CanvasLayer UI 跟隨 MapBoard 一起顯示/隱藏
 	self.visibility_changed.connect(_on_visibility_changed) 
 	
 	setup_ui()
@@ -72,8 +71,8 @@ func _on_window_resized():
 	if event_panel:
 		event_panel.position = (screen_size - event_panel.size) / 2.0
 	if roll_dice_btn:
-		# 【修改】將擲骰子按鈕往畫面中間靠攏 (0.55 代表畫面垂直 55% 的位置)
-		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y * 0.55)
+		# 【修改】重新將擲骰按鈕調整至靠下的位置
+		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y - 160)
 
 func setup_ui():
 	ui_layer = CanvasLayer.new()
@@ -240,10 +239,12 @@ func _on_movement_finished():
 	is_moving = false
 	if current_tile_index == 19:
 		is_event_active = false
+		board_completed.emit() # 【新增】發送結束訊號
 	elif current_tile_index in chance_tiles:
 		show_chance_wheel() 
 	else:
 		is_event_active = false 
+		board_completed.emit() # 【新增】發送結束訊號
 
 func show_chance_wheel():
 	event_panel.show()
@@ -275,10 +276,10 @@ func show_chance_wheel():
 	event_panel.hide()
 	
 	match final_option:
-		1: move_direction = 1; move_player(n)
+		1: move_direction = 1; move_player(n) # 會再次觸發移動結束
 		2: move_direction = -1; move_player(n)
-		3: total_score += m; is_event_active = false
-		4: total_score -= m; is_event_active = false
+		3: total_score += m; is_event_active = false; board_completed.emit() # 【新增】發送訊號
+		4: total_score -= m; is_event_active = false; board_completed.emit() # 【新增】發送訊號
 
 func _input(event):
 	if event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:

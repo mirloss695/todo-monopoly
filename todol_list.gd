@@ -35,12 +35,11 @@ func setup_ui():
 	
 	margin = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_top", 90)    
-	# 【修改】整體往左移：左邊距調小，右邊距調大
-	margin.add_theme_constant_override("margin_left", 30)   
-	margin.add_theme_constant_override("margin_right", 90)
-	# 【修改】整體按鈕往下壓：底部邊距調小到 15
-	margin.add_theme_constant_override("margin_bottom", 15)
+	# 【修改】加大 Top Margin 徹底避開按鈕，左右維持平衡置中，Bottom 壓到底部
+	margin.add_theme_constant_override("margin_top", 120)    
+	margin.add_theme_constant_override("margin_left", 80)   
+	margin.add_theme_constant_override("margin_right", 80)
+	margin.add_theme_constant_override("margin_bottom", 10)
 	add_child(margin)
 	
 	var main_vbox = VBoxContainer.new()
