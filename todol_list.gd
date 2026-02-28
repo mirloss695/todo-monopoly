@@ -21,7 +21,7 @@ var header_hbox: HBoxContainer
 var prev_day_btn: Button
 var next_day_btn: Button
 var header_label: Label
-var limits_label: Label      # 【新增】專門顯示點數與加權限制的標籤
+var limits_label: Label      
 var score_label: Label
 
 var scroll_vbox: VBoxContainer
@@ -43,6 +43,9 @@ func _ready():
 	add_task_row()
 
 func setup_ui():
+	var gap_title_to_middle = 15   # 1. 最上方「標題」與「中間兩列」的距離
+	var gap_middle_internal = 5    # 2. 中間兩列 (今日可用點數 vs 累計分數) 彼此的距離
+	var gap_middle_to_scroll = 20  # 3. 中間兩列 與 下方「任務滾動框(含欄位標題)」的距離
 	bg = ColorRect.new()
 	bg.color = Color("#2C2C2C")
 	add_child(bg)
@@ -58,7 +61,8 @@ func setup_ui():
 	margin.add_theme_constant_override("margin_bottom", 40)
 	
 	var main_vbox = VBoxContainer.new()
-	main_vbox.add_theme_constant_override("separation", 20)
+	# 將基本間距稍微調小，主要依賴我們剛才設定的自訂變數來撐開空間
+	main_vbox.add_theme_constant_override("separation", 10) 
 	margin.add_child(main_vbox)
 	
 	# --- 第一列：主標題與切換按鈕 ---
@@ -89,22 +93,44 @@ func setup_ui():
 	
 	main_vbox.add_child(header_hbox)
 	
-	# --- 【新增】第二列：可用點數與加權上限 ---
+	# 【自訂間距 1】插入空白控制節點撐開空間
+	var spacer1 = Control.new()
+	spacer1.custom_minimum_size = Vector2(0, gap_title_to_middle)
+	main_vbox.add_child(spacer1)
+	
+	# --- 第二列：可用點數與加權上限 ---
 	limits_label = Label.new()
 	limits_label.add_theme_font_size_override("font_size", 22)
 	limits_label.set("theme_override_colors/font_color", Color.LIGHT_GOLDENROD)
 	main_vbox.add_child(limits_label)
 	
-	# --- 第三列：累計分數與今日總分 ---
+	# 【自訂間距 2】插入空白控制節點撐開空間
+	var spacer2 = Control.new()
+	spacer2.custom_minimum_size = Vector2(0, gap_middle_internal)
+	main_vbox.add_child(spacer2)
+	
+	# --- 第三列：累計分數與警告 ---
+	var score_status_hbox = HBoxContainer.new()
+	score_status_hbox.alignment = BoxContainer.ALIGNMENT_BEGIN # 已修復！
+	score_status_hbox.add_theme_constant_override("separation", 30) 
+	main_vbox.add_child(score_status_hbox)
+	
 	score_label = Label.new()
 	score_label.add_theme_font_size_override("font_size", 22) 
-	main_vbox.add_child(score_label)
+	score_status_hbox.add_child(score_label)
 	
 	board_status_label = Label.new()
 	board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 	board_status_label.add_theme_font_size_override("font_size", 18)
-	main_vbox.add_child(board_status_label)
+	board_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER 
+	score_status_hbox.add_child(board_status_label)
 	
+	# 【自訂間距 3】插入空白控制節點撐開空間
+	var spacer3 = Control.new()
+	spacer3.custom_minimum_size = Vector2(0, gap_middle_to_scroll)
+	main_vbox.add_child(spacer3)
+	
+	# --- 第四列：滾動框標題列 ---
 	var title_hbox = HBoxContainer.new()
 	var titles = ["編號", "", "任務內容", "分配點數", "加權(1-5)", "任務得分", ""]
 	var widths = [50, 60, 400, 120, 120, 120, 100] 
@@ -121,7 +147,7 @@ func setup_ui():
 	
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL 
-	scroll.custom_minimum_size = Vector2(0, 200) 
+	scroll.custom_minimum_size = Vector2(0, 250) 
 	scroll_vbox = VBoxContainer.new()
 	scroll_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
 	scroll_vbox.size_flags_vertical = SIZE_EXPAND_FILL 
@@ -165,9 +191,9 @@ func setup_ui():
 	finish_btn.pressed.connect(_on_finish_pressed)
 	btn_hbox.add_child(finish_btn)
 	
-	var spacer = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 10) 
-	main_vbox.add_child(spacer)
+	var spacer_bottom = Control.new()
+	spacer_bottom.custom_minimum_size = Vector2(0, 10) 
+	main_vbox.add_child(spacer_bottom)
 	main_vbox.add_child(btn_hbox)
 	
 	warning_dialog = AcceptDialog.new()
@@ -184,7 +210,6 @@ func setup_ui():
 # 時光機與歷史紀錄系統
 # ==========================================
 func update_day_navigation():
-	# 【修改】更新拆分後的標題文字
 	header_label.text = "📝 第 %d 天任務規劃 (階段 %d)" % [current_view_day, current_stage]
 	limits_label.text = "🎯 今日可用點數: %d  |  ⚖️ 加權總和上限: %d" % [daily_points_limit, weight_limit]
 	
@@ -255,14 +280,14 @@ func build_history_view(day: int):
 		pts_edit.custom_minimum_size = Vector2(widths[3], 0)
 		pts_edit.text = str(task["points"])
 		pts_edit.editable = false
-		pts_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER # 已修復
+		pts_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER 
 		row.add_child(pts_edit)
 		
 		var wt_edit = LineEdit.new()
 		wt_edit.custom_minimum_size = Vector2(widths[4], 0)
 		wt_edit.text = str(task["weight"])
 		wt_edit.editable = false
-		wt_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER # 已修復
+		wt_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER 
 		row.add_child(wt_edit)
 		
 		var sc_lbl = Label.new()
