@@ -1,7 +1,7 @@
 extends Node2D
 
 signal user_confirmed
-signal board_completed # 【新增】告訴控制器事件已全數結束的訊號
+signal board_completed 
 
 var tile_size = Vector2(120, 94) 
 var offset = Vector2(10, 10)
@@ -65,14 +65,20 @@ func _on_visibility_changed():
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
 	if bg: bg.set_deferred("size", screen_size) 
+	
+	# 地圖總大小是 510x510，會置中顯示
+	var map_size = Vector2(510, 510)
 	if map_root:
-		var map_size = Vector2(510, 510) 
 		map_root.position = (screen_size - map_size) / 2.0
+		
 	if event_panel:
 		event_panel.position = (screen_size - event_panel.size) / 2.0
+		
 	if roll_dice_btn:
-		# 【修改】重新將擲骰按鈕調整至靠下的位置
-		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y - 160)
+		# 【修改】精確計算「地圖最底部邊緣」的 Y 座標
+		var map_bottom_y = (screen_size.y + map_size.y) / 2.0
+		# 讓按鈕的中心點對齊地圖底線 (扣除按鈕高度80的一半=40)
+		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, map_bottom_y - 40)
 
 func setup_ui():
 	ui_layer = CanvasLayer.new()
@@ -239,12 +245,12 @@ func _on_movement_finished():
 	is_moving = false
 	if current_tile_index == 19:
 		is_event_active = false
-		board_completed.emit() # 【新增】發送結束訊號
+		board_completed.emit() 
 	elif current_tile_index in chance_tiles:
 		show_chance_wheel() 
 	else:
 		is_event_active = false 
-		board_completed.emit() # 【新增】發送結束訊號
+		board_completed.emit() 
 
 func show_chance_wheel():
 	event_panel.show()
@@ -276,10 +282,10 @@ func show_chance_wheel():
 	event_panel.hide()
 	
 	match final_option:
-		1: move_direction = 1; move_player(n) # 會再次觸發移動結束
+		1: move_direction = 1; move_player(n) 
 		2: move_direction = -1; move_player(n)
-		3: total_score += m; is_event_active = false; board_completed.emit() # 【新增】發送訊號
-		4: total_score -= m; is_event_active = false; board_completed.emit() # 【新增】發送訊號
+		3: total_score += m; is_event_active = false; board_completed.emit() 
+		4: total_score -= m; is_event_active = false; board_completed.emit() 
 
 func _input(event):
 	if event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:
