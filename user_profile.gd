@@ -1,6 +1,5 @@
 extends Control
 
-# --- 模擬的全域變數 ---
 var user_name = "新手玩家"
 var total_score = 1500
 var current_stage = 1
@@ -8,7 +7,6 @@ var move_direction = 1
 var play_days = 1
 var reward_item = "豪華大餐一頓"
 
-# --- UI 節點參考 ---
 var overlay_bg: ColorRect
 var panel: Panel
 var avatar_btn: TextureButton 
@@ -24,27 +22,24 @@ var close_btn: Button
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# 【修改 1】強制拉高圖層，保證蓋過地圖棋子 (棋子為 10)
 	self.z_index = 100 
-	get_viewport().size_changed.connect(_on_window_resized)
-	
 	setup_ui()
 	update_display()
 
-func _on_window_resized():
-	var screen_size = get_viewport_rect().size
-	if overlay_bg:
-		overlay_bg.size = screen_size
-	if panel:
-		panel.position = (screen_size - panel.size) / 2.0
-
 func setup_ui():
+	# 【修改】強制背景遮罩填滿全螢幕
 	overlay_bg = ColorRect.new()
-	overlay_bg.color = Color(0, 0, 0, 0.75)
+	overlay_bg.color = Color(0, 0, 0, 0.85) # 稍微加深一點
+	overlay_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay_bg)
 	
+	# 【修改】使用置中容器，保證面板永遠在畫面正中央
+	var center_container = CenterContainer.new()
+	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(center_container)
+	
 	panel = Panel.new()
-	panel.size = Vector2(850, 620) 
+	panel.custom_minimum_size = Vector2(850, 620) 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#2C2C2C")
 	style.corner_radius_top_left = 20
@@ -54,7 +49,7 @@ func setup_ui():
 	style.shadow_color = Color(0, 0, 0, 0.6)
 	style.shadow_size = 15
 	panel.add_theme_stylebox_override("panel", style)
-	add_child(panel)
+	center_container.add_child(panel)
 	
 	var margin = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -247,6 +242,4 @@ func _on_file_selected(path: String):
 		avatar_btn.texture_normal = ImageTexture.create_from_image(image)
 
 func _on_close_pressed():
-	self.hide() 
-	
-# 【修改 2】已移除 _input 事件，Tab 鍵不再會叫出畫面
+	self.hide()

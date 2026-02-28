@@ -1,18 +1,15 @@
 extends Control
 
-# --- 遊戲核心數值 ---
 var current_stage = 1
 var total_accumulated_score = 0 
 var today_total_score = 0       
 var daily_points_limit = 100 
 var weight_limit = 30           
 
-# --- 狀態變數 ---
 var is_editing = true         
 var can_switch_board = false  
 var task_rows = []   
 
-# --- UI 節點參考 ---
 var bg: ColorRect
 var margin: MarginContainer
 var header_label: Label
@@ -25,39 +22,30 @@ var warning_dialog: AcceptDialog
 var board_status_label: Label 
 
 func _ready():
-	# 確保最底層的根節點填滿整個視窗
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
-	
 	daily_points_limit = current_stage * 100
 	setup_ui()
 	add_task_row()
 
-# --- 建立 UI 介面 ---
 func setup_ui():
-	# 背景底色
 	bg = ColorRect.new()
 	bg.color = Color("#2C2C2C")
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
-	# 【關鍵修正】加入節點後，立刻讓它錨點設為全螢幕填滿
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT) 
 	
-	# 邊距容器
+	# 【修改】完全交給錨點系統排版，不強加螢幕大小，按鈕就不會被切掉
 	margin = MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_top", 90)    
-	margin.add_theme_constant_override("margin_left", 60)   # 稍微增加左右邊距，全螢幕時更好看
+	margin.add_theme_constant_override("margin_left", 60)   
 	margin.add_theme_constant_override("margin_right", 60)
 	margin.add_theme_constant_override("margin_bottom", 40)
 	add_child(margin)
-	# 【關鍵修正】同樣設為全螢幕填滿
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
-	# 垂直排列容器
 	var main_vbox = VBoxContainer.new()
 	main_vbox.add_theme_constant_override("separation", 20)
 	margin.add_child(main_vbox)
-	main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	
-	# --- 頂部資訊區 ---
 	header_label = Label.new()
 	header_label.text = "📝 每日任務規劃 (階段 %d) | 今日可用點數: %d | 加權總和上限: %d" % [current_stage, daily_points_limit, weight_limit]
 	header_label.add_theme_font_size_override("font_size", 26) 
@@ -75,16 +63,15 @@ func setup_ui():
 	board_status_label.add_theme_font_size_override("font_size", 18)
 	main_vbox.add_child(board_status_label)
 	
-	# --- 欄位標題列 ---
 	var title_hbox = HBoxContainer.new()
-	var titles = ["", "任務內容", "分配點數", "加權(1-5)", "任務得分", ""]
-	var widths = [60, 450, 120, 120, 120, 100] 
+	# 【修改】加入編號欄位，並微調排版寬度
+	var titles = ["編號", "", "任務內容", "分配點數", "加權(1-5)", "任務得分", ""]
+	var widths = [50, 60, 400, 120, 120, 120, 100] 
 	for i in range(titles.size()):
 		var l = Label.new()
 		l.text = titles[i]
 		l.custom_minimum_size = Vector2(widths[i], 0)
-		# 讓任務內容的標題稍微靠左，看起來更整齊
-		if i == 1:
+		if i == 2:
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		else:
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -93,16 +80,14 @@ func setup_ui():
 		title_hbox.add_child(l)
 	main_vbox.add_child(title_hbox)
 	
-	# --- 任務列表容器 ---
 	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL # 讓滾動區域吸收所有垂直剩餘空間
-	scroll.custom_minimum_size = Vector2(0, 300) 
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL 
+	scroll.custom_minimum_size = Vector2(0, 150) # 【修改】縮小最小高度避免擠壓按鈕
 	tasks_container = VBoxContainer.new()
 	tasks_container.size_flags_horizontal = SIZE_EXPAND_FILL
 	scroll.add_child(tasks_container)
 	main_vbox.add_child(scroll)
 	
-	# --- 底部按鈕區 ---
 	var btn_hbox = HBoxContainer.new()
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_hbox.add_theme_constant_override("separation", 30)
@@ -132,29 +117,36 @@ func setup_ui():
 	
 	main_vbox.add_child(btn_hbox)
 	
-	# --- 警告視窗初始化 ---
 	warning_dialog = AcceptDialog.new()
 	warning_dialog.title = "⚠️ 規則警告"
 	add_child(warning_dialog)
-	
 	var dialog_label = warning_dialog.get_label()
 	dialog_label.add_theme_font_size_override("font_size", 18)
 	dialog_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	
 	var ok_btn = warning_dialog.get_ok_button()
 	ok_btn.add_theme_font_size_override("font_size", 18)
 	ok_btn.custom_minimum_size = Vector2(100, 40)
 
-# --- 動態新增一行任務 ---
+# --- 動態更新任務編號 ---
+func update_task_numbers():
+	for i in range(task_rows.size()):
+		task_rows[i]["num_lbl"].text = str(i + 1) + "."
+
 func add_task_row():
 	if not is_editing: return 
 	
 	var row = HBoxContainer.new()
 	var row_data = {} 
 	
+	# 【新增】任務編號標籤
+	var num_lbl = Label.new()
+	num_lbl.custom_minimum_size = Vector2(50, 0)
+	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	num_lbl.add_theme_font_size_override("font_size", 20)
+	row.add_child(num_lbl)
+	
 	var cb_container = CenterContainer.new()
 	cb_container.custom_minimum_size = Vector2(60, 0) 
-	
 	var checkbox = Button.new()
 	checkbox.toggle_mode = true 
 	checkbox.text = "" 
@@ -171,11 +163,10 @@ func add_task_row():
 	check_mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	check_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE 
 	checkbox.add_child(check_mark)
-	
 	row.add_child(cb_container)
 	
 	var line_edit = LineEdit.new()
-	line_edit.size_flags_horizontal = SIZE_EXPAND_FILL # 【關鍵修正】讓輸入框吸收剩餘的水平空間，全螢幕時會自動拉長
+	line_edit.size_flags_horizontal = SIZE_EXPAND_FILL
 	line_edit.custom_minimum_size = Vector2(300, 0)
 	line_edit.placeholder_text = "請輸入任務內容..."
 	line_edit.add_theme_font_size_override("font_size", 20) 
@@ -193,12 +184,12 @@ func add_task_row():
 	weight_spin.value = 1
 	row.add_child(weight_spin)
 	
-	var task_score_label = Label.new()
-	task_score_label.custom_minimum_size = Vector2(120, 0)
-	task_score_label.text = "-"
-	task_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	task_score_label.add_theme_font_size_override("font_size", 20)
-	row.add_child(task_score_label)
+	var task_score_lbl = Label.new()
+	task_score_lbl.custom_minimum_size = Vector2(120, 0)
+	task_score_lbl.text = "-"
+	task_score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	task_score_lbl.add_theme_font_size_override("font_size", 20)
+	row.add_child(task_score_lbl)
 	
 	var del_btn = Button.new()
 	del_btn.text = "🗑️ 刪除"
@@ -206,6 +197,7 @@ func add_task_row():
 	row.add_child(del_btn)
 	
 	row_data["row_node"] = row
+	row_data["num_lbl"] = num_lbl # 記錄編號標籤
 	row_data["checkbox"] = checkbox
 	row_data["check_mark"] = check_mark
 	row_data["line_edit"] = line_edit
@@ -215,25 +207,25 @@ func add_task_row():
 	row_data["is_completed"] = false 
 	
 	del_btn.pressed.connect(_on_delete_task.bind(row_data))
-	checkbox.toggled.connect(_on_task_toggled.bind(row_data, task_score_label))
+	checkbox.toggled.connect(_on_task_toggled.bind(row_data, task_score_lbl))
 	
 	tasks_container.add_child(row)
 	task_rows.append(row_data)
+	update_task_numbers() # 每次新增後更新編號
 
 func _on_delete_task(row_data: Dictionary):
 	if row_data["is_completed"]:
 		warning_dialog.dialog_text = "該任務已打勾完成，無法刪除！\n如需刪除請先取消勾選。"
 		warning_dialog.popup_centered()
 		return
-		
 	row_data["row_node"].queue_free() 
-	task_rows.erase(row_data)         
+	task_rows.erase(row_data)
+	update_task_numbers() # 刪除後重新計算編號
 
 func update_score_display():
 	score_label.text = "🏆 目前累計分數: %d  |  🌟 本日總分: %d" % [total_accumulated_score, today_total_score]
 
-func _on_add_task_pressed():
-	add_task_row()
+func _on_add_task_pressed(): add_task_row()
 
 func _on_toggle_save_pressed():
 	if is_editing:
@@ -273,7 +265,6 @@ func _on_toggle_save_pressed():
 			row_data["weight_spin"].editable = false
 			row_data["del_btn"].disabled = true
 			row_data["checkbox"].disabled = false 
-				
 	else:
 		is_editing = true
 		can_switch_board = false
@@ -287,7 +278,6 @@ func _on_toggle_save_pressed():
 		
 		for row_data in task_rows:
 			row_data["checkbox"].disabled = true 
-			
 			if not row_data["is_completed"]:
 				row_data["line_edit"].editable = true
 				row_data["points_spin"].editable = true
@@ -296,60 +286,45 @@ func _on_toggle_save_pressed():
 
 func _on_task_toggled(is_checked: bool, row_data: Dictionary, task_score_lbl: Label):
 	var task_score = row_data["points_spin"].value * row_data["weight_spin"].value
-	
 	if is_checked:
 		print("🎵 [播放音效: 叮！]") 
 		row_data["is_completed"] = true
 		row_data["check_mark"].text = "✔"
-		
 		task_score_lbl.text = "+ " + str(task_score)
 		task_score_lbl.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		today_total_score += task_score
 	else:
-		print("🔄 取消勾選，扣除該任務分數...")
 		row_data["is_completed"] = false
 		row_data["check_mark"].text = ""
-		
 		task_score_lbl.text = "-"
 		task_score_lbl.set("theme_override_colors/font_color", Color.WHITE)
 		today_total_score -= task_score
-		
 	update_score_display()
 	
 func _on_finish_pressed():
 	total_accumulated_score += today_total_score
 	update_score_display()
-	print("🎯 今日結算完畢！準備切換到地圖板塊...")
-	
 	finish_btn.disabled = true
 	finish_btn.text = "已結算"
 	toggle_save_btn.disabled = true 
-	
 	for row_data in task_rows:
 		row_data["checkbox"].disabled = true
 
-# --- 給 Main 控制器呼叫的重置函數 (進入下一天) ---
 func reset_for_new_day():
 	today_total_score = 0
 	is_editing = true
 	can_switch_board = false
-	
 	add_task_btn.disabled = false
 	toggle_save_btn.text = "💾 確認儲存"
 	toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 	toggle_save_btn.disabled = false
-	
 	finish_btn.disabled = true
 	finish_btn.text = "🚩 結算今日得分"
-	
 	board_status_label.text = "⚠️ 目前有未儲存的變更，無法轉跳板塊！"
 	board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 	
-	# 清空舊任務
 	for row_data in task_rows:
 		row_data["row_node"].queue_free()
 	task_rows.clear()
-	
-	# 給予一個新任務列
 	add_task_row()
 	update_score_display()

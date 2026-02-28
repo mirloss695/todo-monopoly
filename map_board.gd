@@ -35,8 +35,8 @@ var ui_layer: CanvasLayer
 var event_panel: ColorRect
 var event_title: Label
 var event_result: Label
-var continue_btn: Button # 【修改】把純文字提示改成實際的按鈕
-var roll_dice_btn: Button # 【新增】專屬的擲骰子大按鈕
+var continue_btn: Button 
+var roll_dice_btn: Button 
 
 func _ready():
 	randomize()
@@ -65,7 +65,6 @@ func _on_window_resized():
 		map_root.position = (screen_size - map_size) / 2.0
 	if event_panel:
 		event_panel.position = (screen_size - event_panel.size) / 2.0
-	# 定位擲骰子按鈕到底部中央
 	if roll_dice_btn:
 		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, screen_size.y - 120)
 
@@ -73,7 +72,6 @@ func setup_ui():
 	ui_layer = CanvasLayer.new()
 	add_child(ui_layer)
 	
-	# --- 專屬擲骰子按鈕 ---
 	roll_dice_btn = Button.new()
 	roll_dice_btn.text = "🎲 點擊擲骰子"
 	roll_dice_btn.custom_minimum_size = Vector2(250, 80)
@@ -82,9 +80,8 @@ func setup_ui():
 	roll_dice_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	roll_dice_btn.pressed.connect(_on_roll_dice_pressed)
 	ui_layer.add_child(roll_dice_btn)
-	roll_dice_btn.hide() # 預設隱藏，只有在從結算跳過來時才顯示
+	roll_dice_btn.hide() 
 	
-	# --- 彈出事件視窗 ---
 	event_panel = ColorRect.new()
 	event_panel.color = Color(0, 0, 0, 0.85)
 	event_panel.size = Vector2(400, 200)
@@ -106,7 +103,6 @@ func setup_ui():
 	event_result.add_theme_font_size_override("font_size", 48)
 	event_panel.add_child(event_result)
 	
-	# 【修改】把空白鍵提示換成實體按鈕
 	continue_btn = Button.new()
 	continue_btn.text = "確認並繼續"
 	continue_btn.custom_minimum_size = Vector2(150, 40)
@@ -120,17 +116,14 @@ func setup_ui():
 	continue_btn.hide()
 	event_panel.hide()
 
-# --- 給 Main 呼叫的觸發器 ---
 func activate_dice():
 	if current_tile_index != 19:
 		roll_dice_btn.show()
 
-# --- 擲骰子按鈕事件 ---
 func _on_roll_dice_pressed():
 	roll_dice_btn.hide()
 	show_dice_roll()
 
-# --- (生成地圖等邏輯不變) ---
 func generate_chance_tiles():
 	chance_tiles.clear()
 	var valid_range = range(1, 19)
@@ -280,4 +273,9 @@ func show_chance_wheel():
 		3: total_score += m; is_event_active = false
 		4: total_score -= m; is_event_active = false
 
-# 【修改】已徹底刪除 _input(event)，完美防範 Enter 和空白鍵的干擾
+# 【修改】嚴格限制：只有在視窗彈出並等待玩家按鈕時，空白鍵才會生效
+func _input(event):
+	if event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:
+		if is_waiting_confirm:
+			is_waiting_confirm = false
+			user_confirmed.emit()
