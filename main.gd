@@ -20,7 +20,7 @@ var is_map_completed = false
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
-	
+
 	top_bar = VBoxContainer.new() 
 	top_bar.position = Vector2(20, 20)
 	top_bar.add_theme_constant_override("separation", 15) 
