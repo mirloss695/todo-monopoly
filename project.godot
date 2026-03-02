@@ -11,13 +11,7 @@ config_version=5
 [application]
 
 config/name="TodoMonopoly"
-run/main_scene="uid://ba8k3c2n8p1ei"
 config/features=PackedStringArray("4.6", "GL Compatibility")
-config/icon="res://icon.svg"
-
-[autoload]
-
-SilentWolf="*uid://dpwlujnyjdlnj"
 
 [display]
 
