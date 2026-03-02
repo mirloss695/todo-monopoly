@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="TodoMonopoly"
+run/main_scene="uid://dvnc0w6k66l7r"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [display]
@@ -20,11 +21,11 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/silent_wolf/plugin.cfg")
+enabled=PackedStringArray()
 
 [gui]
 
-theme/custom_font="uid://ebi1dhllaaso"
+theme/custom_font="uid://di0wcrrdqn4w5"
 
 [physics]
 
