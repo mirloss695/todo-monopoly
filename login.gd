@@ -117,11 +117,13 @@ func _on_login_pressed():
 	login_btn.disabled = false # 恢復按鈕
 	
 	if response.success:
-		status_label.text = "✅ 連線成功！準備載入資料..."
+		status_label.text = "✅ 連線成功！正在同步雲端進度..."
 		status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		
-		# 登入成功，等待 1 秒後轉跳到我們的主遊戲畫面 (Main)
-		await get_tree().create_timer(1.0).timeout
+		# 【新增】呼叫 SaveManager 從 LootLocker 下載這名玩家的專屬進度
+		await SaveManager.load_from_cloud()
+		
+		# 下載完成後，轉跳到主遊戲畫面
 		get_tree().change_scene_to_file("res://main.tscn")
 	else:
 		# 顯示伺服器回傳的錯誤

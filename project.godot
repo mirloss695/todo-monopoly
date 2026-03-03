@@ -11,11 +11,12 @@ config_version=5
 [application]
 
 config/name="TodoMonopoly"
+run/main_scene="uid://ba8k3c2n8p1ei"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
 
-LootLockerSDK="*uid://cypmrnttnb8qs"
+SaveManager="*uid://nff5nk4372dp"
 
 [display]
 
