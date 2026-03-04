@@ -1,7 +1,7 @@
 extends Control
 
 var user_name = "新手玩家"
-var total_score = 1500
+var total_score = 0
 var current_stage = 1
 var move_direction = 1 
 var play_days = 1
@@ -27,13 +27,11 @@ func _ready():
 	update_display()
 
 func setup_ui():
-	# 【修改】強制背景遮罩填滿全螢幕
 	overlay_bg = ColorRect.new()
-	overlay_bg.color = Color(0, 0, 0, 0.85) # 稍微加深一點
+	overlay_bg.color = Color(0, 0, 0, 0.85)
 	overlay_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay_bg)
 	
-	# 【修改】使用置中容器，保證面板永遠在畫面正中央
 	var center_container = CenterContainer.new()
 	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center_container)
@@ -215,6 +213,12 @@ func _add_grid_row(grid: GridContainer, title_text: String, content_node: Contro
 	grid.add_child(content_node)
 
 func update_display():
+	# 同步 UI 輸入框（名稱與獎勵可能已從 SaveManager 更新）
+	if name_input:
+		name_input.text = user_name
+	if reward_input:
+		reward_input.text = reward_item
+
 	score_label.text = str(total_score) + " 分"
 	var direction_text = "靠近" if move_direction == 1 else "遠離"
 	var highlight_color = "#32CD32" if move_direction == 1 else "#FF4500" 
@@ -232,8 +236,14 @@ func update_display():
 		_: prefix = "未知的"
 	reward_prefix_label.text = prefix
 
-func _on_name_changed(new_text: String): user_name = new_text
-func _on_reward_changed(new_text: String): reward_item = new_text
+func _on_name_changed(new_text: String):
+	user_name = new_text
+	SaveManager.user_name = new_text
+
+func _on_reward_changed(new_text: String):
+	reward_item = new_text
+	SaveManager.reward_item = new_text
+
 func _on_change_avatar_pressed(): file_dialog.popup_centered(Vector2(600, 400)) 
 
 func _on_file_selected(path: String):

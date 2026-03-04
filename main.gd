@@ -71,10 +71,59 @@ func _ready():
 	todo_board.finish_btn.pressed.connect(_on_todo_finished)
 	map_board.board_completed.connect(_on_map_completed) 
 	
-	sync_all_data()
+	# 從 SaveManager 載入進度到各子系統
+	_load_from_save_manager()
+	
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
+
+# ==========================================
+# 📂 從 SaveManager 還原進度
+# ==========================================
+func _load_from_save_manager():
+	global_score  = SaveManager.total_accumulated_score
+	global_day    = SaveManager.actual_day
+	global_stage  = SaveManager.current_stage
+
+	# 還原 todo_board 歷史資料
+	todo_board.task_history           = SaveManager.task_history
+	todo_board.actual_day             = SaveManager.actual_day
+	todo_board.current_view_day       = SaveManager.actual_day
+	todo_board.total_accumulated_score = SaveManager.total_accumulated_score
+	todo_board.current_stage          = SaveManager.current_stage
+	todo_board.daily_points_limit     = SaveManager.current_stage * 100
+	todo_board.update_day_navigation()
+
+	# 還原地圖格子與方向
+	map_board.current_stage      = SaveManager.current_stage
+	map_board.total_score        = SaveManager.total_accumulated_score
+	map_board.current_tile_index = SaveManager.map_tile_index
+	map_board.move_direction     = SaveManager.map_move_direction
+
+	# 還原帳號面板
+	profile_board.user_name    = SaveManager.user_name
+	profile_board.reward_item  = SaveManager.reward_item
+	profile_board.total_score  = SaveManager.total_accumulated_score
+	profile_board.current_stage = SaveManager.current_stage
+	profile_board.play_days    = SaveManager.actual_day
+	profile_board.update_display()
+
+	sync_all_data()
+
+# ==========================================
+# 🔄 寫回 SaveManager 並存檔
+# ==========================================
+func _save_to_save_manager():
+	SaveManager.total_accumulated_score = global_score
+	SaveManager.actual_day              = global_day
+	SaveManager.current_stage           = global_stage
+	SaveManager.task_history            = todo_board.task_history
+	SaveManager.map_tile_index          = map_board.current_tile_index
+	SaveManager.map_move_direction      = map_board.move_direction
+	SaveManager.user_name               = profile_board.user_name
+	SaveManager.reward_item             = profile_board.reward_item
+	SaveManager.save_to_cloud()
 
 func update_switch_btn_text():
 	if is_switch_hovered:
@@ -84,7 +133,6 @@ func update_switch_btn_text():
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
-	# 【關鍵修復】拿掉會干擾 Godot 原生 Anchor 的手動尺寸設定
 	if next_day_btn:
 		next_day_btn.position = screen_size - next_day_btn.size - Vector2(40, 40)
 
@@ -160,3 +208,6 @@ func _on_next_day_pressed():
 		todo_board.reset_for_new_day()
 		
 	todo_board.show()
+	
+	# 每天結束時自動存檔
+	_save_to_save_manager()
