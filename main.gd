@@ -19,6 +19,8 @@ var is_on_map = false
 var is_switch_hovered = false
 var is_map_completed = false
 
+var cheat_panel: CheatPanel
+
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_setup_top_bar()
@@ -34,6 +36,11 @@ func _ready():
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
+
+	# 🛠️ 作弊面板（F12 開關）
+	cheat_panel = CheatPanel.new()
+	add_child(cheat_panel)
+	cheat_panel.setup(map_board, self)
 
 func _setup_top_bar():
 	var refs = TopBarBuilder.build(self)

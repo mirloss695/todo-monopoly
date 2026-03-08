@@ -16,7 +16,7 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
 
-SaveManager="*uid://nff5nk4372dp"
+SaveManager="*uid://dxnocbr818wrf"
 
 [display]
 

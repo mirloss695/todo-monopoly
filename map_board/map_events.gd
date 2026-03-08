@@ -2,15 +2,17 @@ class_name MapEvents
 ## 負責地圖事件：骰子動畫、機會轉盤、終點升階判定
 
 ## 骰子動畫：在 event_panel 上快速切換數字，回傳最終點數
-static func animate_dice(event_panel: ColorRect, event_title: Label, event_result: Label, tree: SceneTree) -> int:
+## forced_value > 0 時跳過隨機，直接使用指定值（作弊模式用）
+static func animate_dice(event_panel: ColorRect, event_title: Label, event_result: Label, tree: SceneTree, forced_value: int = 0) -> int:
 	event_panel.show()
-	event_title.text = "🎲 擲骰子中..."
+	var is_cheat = forced_value > 0
+	event_title.text = "🎲 [作弊] 指定骰子..." if is_cheat else "🎲 擲骰子中..."
 
 	for i in range(8):
 		event_result.text = str(randi_range(1, 6))
 		await tree.create_timer(0.03).timeout
 
-	var final_roll = randi_range(1, 6)
+	var final_roll = forced_value if is_cheat else randi_range(1, 6)
 	event_result.text = str(final_roll) + " 步！"
 	return final_roll
 

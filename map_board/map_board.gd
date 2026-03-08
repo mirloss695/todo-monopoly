@@ -20,6 +20,9 @@ var is_moving = false
 var is_event_active = false
 var is_waiting_confirm = false
 
+# 作弊模式
+var cheat_forced_dice_value = 0  # > 0 時使用指定骰子值
+
 # UI 參照
 var bg: ColorRect
 var map_root: Node2D
@@ -124,7 +127,9 @@ func _on_roll_dice_pressed():
 
 func _show_dice_roll():
 	is_event_active = true
-	var final_roll = await MapEvents.animate_dice(event_panel, event_title, event_result, get_tree())
+	var forced = cheat_forced_dice_value
+	cheat_forced_dice_value = 0  # 用完即重置
+	var final_roll = await MapEvents.animate_dice(event_panel, event_title, event_result, get_tree(), forced)
 
 	continue_btn.show()
 	is_waiting_confirm = true
@@ -237,6 +242,17 @@ func _show_chance_wheel():
 			total_score -= result["value"]
 			is_event_active = false
 			board_completed.emit()
+
+# ==========================================
+# 🛠️ 作弊模式接口
+# ==========================================
+
+## 瞬間移動棋子到指定格子（不觸發事件）
+func cheat_teleport_to(index: int):
+	index = clampi(index, 0, 19)
+	current_tile_index = index
+	if is_instance_valid(player_node) and map_tiles.size() > index:
+		player_node.position = map_tiles[index].position + (MapGenerator.TILE_SIZE - player_node.size) / 2.0
 
 # ==========================================
 # 輸入處理
