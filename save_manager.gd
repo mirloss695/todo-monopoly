@@ -30,27 +30,19 @@ var session_token = ""
 # ‣ URL 不快取：LootLocker Signed URL 有時效，每次讀檔都重新取
 # ==========================================
 const SAVE_FILENAME   = "todo_save.json"
-const LOCAL_SAVE_PATH = "user://todo_save.json"
 var _save_file_id: int = -1
 
 # ==========================================
 # 💾 儲存（本機 + 雲端）
 # ==========================================
 func save_to_cloud() -> void:
-	var dict = _build_save_dict()
-
-	# ── 1. 本機存檔（同步、必定執行，保底用）──
-	_save_local(dict)
-
-	# ── 2. 雲端存檔 ──
 	if session_token == "":
 		push_warning("⚠️ [SaveManager] session_token 為空，略過雲端存檔")
 		return
 
 	print("☁️ [SaveManager] 上傳存檔至雲端...")
-	var json_str = JSON.stringify(dict)
+	var json_str = JSON.stringify(_build_save_dict())
 
-	# 若本 session 尚未取得 file_id，先查一次清單
 	if _save_file_id <= 0:
 		_save_file_id = await CloudFileHelper.find_file_id_by_name(self, session_token, SAVE_FILENAME)
 
@@ -59,61 +51,29 @@ func save_to_cloud() -> void:
 		if ok:
 			print("✅ [SaveManager] 雲端存檔更新成功！(file_id=%d)" % _save_file_id)
 		else:
-			push_warning("❌ [SaveManager] 雲端存檔更新失敗（已重試 %d 次，本機已保存）" % CloudFileHelper.MAX_RETRIES)
+			push_warning("❌ [SaveManager] 雲端存檔更新失敗（已重試 %d 次）" % CloudFileHelper.MAX_RETRIES)
 	else:
 		var new_id = await CloudFileHelper.upload_file(self, session_token, SAVE_FILENAME, json_str)
 		if new_id > 0:
 			_save_file_id = new_id
 			print("✅ [SaveManager] 雲端存檔建立成功！(file_id=%d)" % _save_file_id)
 		else:
-			push_warning("❌ [SaveManager] 雲端存檔建立失敗（已重試 %d 次，本機已保存）" % CloudFileHelper.MAX_RETRIES)
+			push_warning("❌ [SaveManager] 雲端存檔建立失敗（已重試 %d 次）" % CloudFileHelper.MAX_RETRIES)
 
 # ==========================================
 # 📂 讀取（雲端優先，失敗則 fallback 本機）
 # 回傳 true = 有存檔，false = 新玩家
 # ==========================================
 func load_from_cloud() -> bool:
-	if session_token != "":
-		var cloud_ok = await _load_cloud()
-		if cloud_ok:
-			_save_local(_build_save_dict())  # 同步更新本機備份
-			return true
-		push_warning("⚠️ [SaveManager] 雲端讀取失敗，嘗試本機備份...")
-
-	var local_ok = _load_local()
-	if local_ok:
-		print("✅ [SaveManager] 從本機備份還原進度（第 %d 天）" % actual_day)
-	else:
-		print("ℹ️ [SaveManager] 無任何存檔，以新玩家進度開始")
-	return local_ok
-
-# ==========================================
-# 🔧 本機存讀
-# ==========================================
-func _save_local(dict: Dictionary) -> void:
-	var file = FileAccess.open(LOCAL_SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_warning("❌ [SaveManager] 本機存檔失敗：%s" % LOCAL_SAVE_PATH)
-		return
-	file.store_string(JSON.stringify(dict))
-	file.close()
-	print("💾 [SaveManager] 本機存檔完成")
-
-func _load_local() -> bool:
-	if not FileAccess.file_exists(LOCAL_SAVE_PATH):
+	if session_token == "":
+		push_warning("❌ [SaveManager] session_token 為空，無法讀檔")
 		return false
-	var file = FileAccess.open(LOCAL_SAVE_PATH, FileAccess.READ)
-	if file == null:
-		return false
-	var raw = file.get_as_text()
-	file.close()
-	var parsed = JSON.parse_string(raw)
-	if parsed == null:
-		push_warning("❌ [SaveManager] 本機 JSON 解析失敗")
-		return false
-	_apply_save(parsed)
-	return true
 
+	var cloud_ok = await _load_cloud()
+	if not cloud_ok:
+		print("ℹ️ [SaveManager] 無雲端存檔，以新玩家進度開始")
+	return cloud_ok
+	
 # ==========================================
 # 🔧 雲端讀取（私有）
 # ==========================================

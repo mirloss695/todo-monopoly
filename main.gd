@@ -21,7 +21,7 @@ var is_map_completed = false
 
 var cheat_panel: CheatPanel
 
-func _ready():
+func _ready():	
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_setup_top_bar()
 
