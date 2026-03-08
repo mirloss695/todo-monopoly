@@ -1,8 +1,10 @@
 extends Node
 ## 遊戲進度管理器
-## 雲端存檔已從 Player Storage 遷移至 Files API
-## ‣ 無 1500 字元限制
-## ‣ 使用 cloud_file_helper.gd 封裝 multipart 上傳邏輯
+##
+## 存檔策略（雙軌制）：
+##   儲存：本機（user://todo_save.json）+ 雲端（Files API）同時寫入
+##         雲端失敗不影響本機，進度永遠不會遺失
+##   讀取：優先雲端（保持多裝置同步）→ 雲端失敗則 fallback 本機
 
 # ==========================================
 # 🧠 遊戲全域核心變數
@@ -14,119 +16,137 @@ var actual_day = 1
 var map_tile_index = 0
 var map_move_direction = 1
 
-# 帳號面板資料
 var user_name = ""
 var reward_item = ""
 
 # ==========================================
-# 🔑 Session Token（登入後由 login.gd 設定）
+# 🔑 Session Token
 # ==========================================
 var session_token = ""
 
 # ==========================================
-# 📁 Files API 快取
-# ‣ _save_file_id > 0  → 已知檔案 ID，直接 PUT 更新
-# ‣ _save_file_id == -1 → 尚未查詢 / 不存在，需 POST 建立
+# 📁 快取
+# ‣ _save_file_id：已知檔案 ID，用於 PUT 更新（避免每次存檔都先 GET 清單）
+# ‣ URL 不快取：LootLocker Signed URL 有時效，每次讀檔都重新取
 # ==========================================
-const SAVE_FILENAME = "todo_save.json"
+const SAVE_FILENAME   = "todo_save.json"
+const LOCAL_SAVE_PATH = "user://todo_save.json"
 var _save_file_id: int = -1
 
 # ==========================================
-# ☁️ 雲端存檔（Files API）
-## 流程：
-##   1. 若 _save_file_id 未知 → 先查詢檔案清單
-##   2. 找到舊檔 → PUT 更新；否則 POST 建立並快取新 ID
+# 💾 儲存（本機 + 雲端）
 # ==========================================
 func save_to_cloud() -> void:
+	var dict = _build_save_dict()
+
+	# ── 1. 本機存檔（同步、必定執行，保底用）──
+	_save_local(dict)
+
+	# ── 2. 雲端存檔 ──
 	if session_token == "":
-		push_warning("❌ [SaveManager] session_token 為空，無法存檔")
+		push_warning("⚠️ [SaveManager] session_token 為空，略過雲端存檔")
 		return
 
-	print("☁️ [SaveManager] 準備上傳存檔（Files API）...")
+	print("☁️ [SaveManager] 上傳存檔至雲端...")
+	var json_str = JSON.stringify(dict)
 
-	var json_str = JSON.stringify(_build_save_dict())
-
-	# ── 若尚未知道 file_id，先查一次清單 ──
+	# 若本 session 尚未取得 file_id，先查一次清單
 	if _save_file_id <= 0:
 		_save_file_id = await CloudFileHelper.find_file_id_by_name(self, session_token, SAVE_FILENAME)
 
-	# ── 依結果選擇 PUT 或 POST ──
 	if _save_file_id > 0:
 		var ok = await CloudFileHelper.update_file(self, session_token, _save_file_id, SAVE_FILENAME, json_str)
 		if ok:
 			print("✅ [SaveManager] 雲端存檔更新成功！(file_id=%d)" % _save_file_id)
 		else:
-			push_warning("❌ [SaveManager] 雲端存檔更新失敗")
+			push_warning("❌ [SaveManager] 雲端存檔更新失敗（已重試 %d 次，本機已保存）" % CloudFileHelper.MAX_RETRIES)
 	else:
 		var new_id = await CloudFileHelper.upload_file(self, session_token, SAVE_FILENAME, json_str)
 		if new_id > 0:
 			_save_file_id = new_id
 			print("✅ [SaveManager] 雲端存檔建立成功！(file_id=%d)" % _save_file_id)
 		else:
-			push_warning("❌ [SaveManager] 雲端存檔建立失敗")
+			push_warning("❌ [SaveManager] 雲端存檔建立失敗（已重試 %d 次，本機已保存）" % CloudFileHelper.MAX_RETRIES)
 
 # ==========================================
-# ☁️ 雲端讀檔（Files API）
-## 回傳 true = 有存檔（老玩家），false = 新玩家
-## 流程：
-##   1. 列出檔案，尋找 todo_save.json
-##   2. 取得其公開 URL 並下載 JSON 字串
-##   3. 解析並還原各欄位
+# 📂 讀取（雲端優先，失敗則 fallback 本機）
+# 回傳 true = 有存檔，false = 新玩家
 # ==========================================
 func load_from_cloud() -> bool:
-	if session_token == "":
-		push_warning("❌ [SaveManager] session_token 為空，無法讀檔")
+	if session_token != "":
+		var cloud_ok = await _load_cloud()
+		if cloud_ok:
+			_save_local(_build_save_dict())  # 同步更新本機備份
+			return true
+		push_warning("⚠️ [SaveManager] 雲端讀取失敗，嘗試本機備份...")
+
+	var local_ok = _load_local()
+	if local_ok:
+		print("✅ [SaveManager] 從本機備份還原進度（第 %d 天）" % actual_day)
+	else:
+		print("ℹ️ [SaveManager] 無任何存檔，以新玩家進度開始")
+	return local_ok
+
+# ==========================================
+# 🔧 本機存讀
+# ==========================================
+func _save_local(dict: Dictionary) -> void:
+	var file = FileAccess.open(LOCAL_SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("❌ [SaveManager] 本機存檔失敗：%s" % LOCAL_SAVE_PATH)
+		return
+	file.store_string(JSON.stringify(dict))
+	file.close()
+	print("💾 [SaveManager] 本機存檔完成")
+
+func _load_local() -> bool:
+	if not FileAccess.file_exists(LOCAL_SAVE_PATH):
 		return false
-
-	print("☁️ [SaveManager] 從 Files API 下載存檔...")
-
-	# ── 取得檔案清單，尋找目標檔案 ──
-	var items = await CloudFileHelper.list_files(self, session_token)
-	var target_url = ""
-
-	for item in items:
-		if item.get("name", "") == SAVE_FILENAME:
-			_save_file_id = int(item["id"])
-			target_url    = item.get("url", "")
-			break
-
-	if target_url == "":
-		print("ℹ️ [SaveManager] 無存檔，以新玩家進度開始。")
+	var file = FileAccess.open(LOCAL_SAVE_PATH, FileAccess.READ)
+	if file == null:
 		return false
-
-	# ── 下載檔案內容 ──
-	var raw = await CloudFileHelper.download_file_by_url(self, target_url)
-	if raw == "":
-		push_warning("❌ [SaveManager] 檔案內容為空或下載失敗")
+	var raw = file.get_as_text()
+	file.close()
+	var parsed = JSON.parse_string(raw)
+	if parsed == null:
+		push_warning("❌ [SaveManager] 本機 JSON 解析失敗")
 		return false
-
-	var save_parsed = JSON.parse_string(raw)
-	if save_parsed == null:
-		push_warning("❌ [SaveManager] JSON 解析失敗")
-		return false
-
-	# ── 還原各欄位 ──
-	current_stage           = save_parsed.get("current_stage",           1)
-	total_accumulated_score = save_parsed.get("total_accumulated_score", 0)
-	actual_day              = save_parsed.get("actual_day",              1)
-	map_tile_index          = save_parsed.get("map_tile_index",          0)
-	map_move_direction      = save_parsed.get("map_move_direction",      1)
-	user_name               = save_parsed.get("user_name",               "")
-	reward_item             = save_parsed.get("reward_item",             "")
-
-	var loaded_history = save_parsed.get("task_history", {})
-	task_history.clear()
-	for key in loaded_history:
-		task_history[int(key)] = loaded_history[key]
-
-	print("✅ [SaveManager] 讀檔成功！第 %d 天，file_id=%d" % [actual_day, _save_file_id])
+	_apply_save(parsed)
 	return true
 
 # ==========================================
-# 🔧 內部工具
+# 🔧 雲端讀取（私有）
 # ==========================================
+func _load_cloud() -> bool:
+	print("☁️ [SaveManager] 從 Files API 下載存檔...")
 
-## 組合要儲存的 Dictionary
+	# 每次讀檔都重新取最新 item（URL 是有時效的 Signed URL，不可重用）
+	var item = await CloudFileHelper.find_file_by_name(self, session_token, SAVE_FILENAME)
+	if item.is_empty():
+		return false
+
+	_save_file_id = int(item["id"])  # 順便更新快取
+	var url: String = item.get("url", "")
+	if url == "":
+		push_warning("❌ [SaveManager] 檔案 item 缺少 url 欄位")
+		return false
+
+	var raw = await CloudFileHelper.download_file_by_url(self, url)
+	if raw == "":
+		return false
+
+	var parsed = JSON.parse_string(raw)
+	if parsed == null:
+		push_warning("❌ [SaveManager] 雲端 JSON 解析失敗")
+		return false
+
+	_apply_save(parsed)
+	print("✅ [SaveManager] 雲端讀檔成功（第 %d 天，file_id=%d）" % [actual_day, _save_file_id])
+	return true
+
+# ==========================================
+# 🔧 共用工具
+# ==========================================
 func _build_save_dict() -> Dictionary:
 	return {
 		"current_stage":           current_stage,
@@ -138,3 +158,17 @@ func _build_save_dict() -> Dictionary:
 		"user_name":               user_name,
 		"reward_item":             reward_item
 	}
+
+func _apply_save(data: Dictionary) -> void:
+	current_stage           = data.get("current_stage",           1)
+	total_accumulated_score = data.get("total_accumulated_score", 0)
+	actual_day              = data.get("actual_day",              1)
+	map_tile_index          = data.get("map_tile_index",          0)
+	map_move_direction      = data.get("map_move_direction",      1)
+	user_name               = data.get("user_name",               "")
+	reward_item             = data.get("reward_item",             "")
+
+	var loaded_history = data.get("task_history", {})
+	task_history.clear()
+	for key in loaded_history:
+		task_history[int(key)] = loaded_history[key]

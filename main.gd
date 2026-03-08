@@ -29,6 +29,7 @@ func _ready():
 	_on_window_resized()
 
 	todo_board.finish_btn.pressed.connect(_on_todo_finished)
+	todo_board.request_save.connect(_on_todo_request_save)
 	map_board.board_completed.connect(_on_map_completed)
 
 	_load_from_save_manager()
@@ -69,7 +70,6 @@ func _load_from_save_manager():
 	global_day   = SaveManager.actual_day
 	global_stage = SaveManager.current_stage
 
-	# 還原 todo_board
 	todo_board.task_history            = SaveManager.task_history
 	todo_board.actual_day              = SaveManager.actual_day
 	todo_board.current_view_day        = SaveManager.actual_day
@@ -78,15 +78,11 @@ func _load_from_save_manager():
 	todo_board.daily_points_limit      = SaveManager.current_stage * 100
 	todo_board.update_day_navigation()
 
-	# 還原地圖
 	map_board.current_stage      = SaveManager.current_stage
 	map_board.total_score        = SaveManager.total_accumulated_score
 	map_board.current_tile_index = SaveManager.map_tile_index
 	map_board.move_direction     = SaveManager.map_move_direction
-	map_board._rebuild_map()
-	map_board._on_window_resized()
 
-	# 還原帳號面板
 	profile_board.user_name     = SaveManager.user_name
 	profile_board.reward_item   = SaveManager.reward_item
 	profile_board.total_score   = SaveManager.total_accumulated_score
@@ -162,6 +158,18 @@ func _on_switch_pressed():
 
 	_update_switch_btn_text()
 
+# ==========================================
+# 💾 存檔節點：todo_list 內部觸發（勾選、確認儲存）
+# ==========================================
+func _on_todo_request_save():
+	global_score = todo_board.total_accumulated_score
+	_sync_all_data()
+	_save_to_save_manager()
+
+# ==========================================
+# 💾 存檔節點 1：結算今日得分
+# 玩家確認任務完成、分數底定，是重要進度點
+# ==========================================
 func _on_todo_finished():
 	global_score = todo_board.total_accumulated_score
 	is_board_finished = true
@@ -174,11 +182,28 @@ func _on_todo_finished():
 
 	map_board.activate_dice()
 
+	# 存檔：任務結算完成
+	_save_to_save_manager()
+
+# ==========================================
+# 💾 存檔節點 2：地圖事件結束（每次骰子走完）
+# 包含機會格、升降階、一般格落地
+# ==========================================
 func _on_map_completed():
 	is_map_completed = true
+	global_score = map_board.total_score
+	global_stage = map_board.current_stage
+	_sync_all_data()
+
 	if is_on_map:
 		next_day_btn.show()
 
+	# 存檔：地圖事件結束
+	_save_to_save_manager()
+
+# ==========================================
+# 💾 存檔節點 3：進入下一天
+# ==========================================
 func _on_next_day_pressed():
 	global_score = map_board.total_score
 	global_day += 1
@@ -196,5 +221,5 @@ func _on_next_day_pressed():
 
 	todo_board.show()
 
-	# 每天結束時自動存檔
+	# 存檔：天數推進
 	_save_to_save_manager()

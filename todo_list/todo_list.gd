@@ -4,6 +4,8 @@ extends Control
 ## 任務列操作委託給 TodoTaskRow
 ## 歷史檢視委託給 TodoHistory
 
+signal request_save  # ← main.gd 監聽此訊號並呼叫 _save_to_save_manager()
+
 var current_stage = 1
 var total_accumulated_score = 0
 var today_total_score = 0
@@ -44,21 +46,20 @@ func _ready():
 func _setup_ui():
 	var refs = TodoUIBuilder.build(self)
 
-	header_label     = refs["header_label"]
-	limits_label     = refs["limits_label"]
-	score_label      = refs["score_label"]
+	header_label       = refs["header_label"]
+	limits_label       = refs["limits_label"]
+	score_label        = refs["score_label"]
 	board_status_label = refs["board_status_label"]
-	tasks_container  = refs["tasks_container"]
-	history_container = refs["history_container"]
-	btn_hbox         = refs["btn_hbox"]
-	add_task_btn     = refs["add_task_btn"]
-	toggle_save_btn  = refs["toggle_save_btn"]
-	finish_btn       = refs["finish_btn"]
-	warning_dialog   = refs["warning_dialog"]
-	prev_day_btn     = refs["prev_day_btn"]
-	next_day_btn     = refs["next_day_btn"]
+	tasks_container    = refs["tasks_container"]
+	history_container  = refs["history_container"]
+	btn_hbox           = refs["btn_hbox"]
+	add_task_btn       = refs["add_task_btn"]
+	toggle_save_btn    = refs["toggle_save_btn"]
+	finish_btn         = refs["finish_btn"]
+	warning_dialog     = refs["warning_dialog"]
+	prev_day_btn       = refs["prev_day_btn"]
+	next_day_btn       = refs["next_day_btn"]
 
-	# 連接信號
 	prev_day_btn.pressed.connect(_on_prev_day_pressed)
 	next_day_btn.pressed.connect(_on_next_day_pressed)
 	add_task_btn.pressed.connect(_on_add_task_pressed)
@@ -124,10 +125,14 @@ func _on_delete_task(row_data: Dictionary):
 	task_rows.erase(row_data)
 	update_task_numbers()
 
+# ==========================================
+# 💾 存檔節點：勾選 / 取消勾選核取方塊
+# ==========================================
 func _on_task_toggled(is_checked: bool, row_data: Dictionary):
 	var delta = TodoTaskRow.handle_toggle(is_checked, row_data)
 	today_total_score += delta
 	update_score_display()
+	request_save.emit()
 
 func update_score_display():
 	if current_view_day == actual_day:
@@ -138,6 +143,8 @@ func _on_add_task_pressed(): add_task_row()
 # ==========================================
 # 儲存 / 解鎖 / 結算
 # ==========================================
+
+# 💾 存檔節點：點擊「確認儲存」鎖定任務時
 func _on_toggle_save_pressed():
 	if is_editing:
 		var total_points = 0
@@ -172,6 +179,9 @@ func _on_toggle_save_pressed():
 
 		for row_data in task_rows:
 			TodoTaskRow.set_locked(row_data, true)
+
+		# 任務確認儲存後存檔
+		request_save.emit()
 	else:
 		is_editing = true
 		can_switch_board = false
