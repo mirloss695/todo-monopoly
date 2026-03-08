@@ -49,7 +49,7 @@ signal _new_reward_confirmed
 const STAGE_THRESHOLDS = {
 	1: 2000,
 	2: 3000,
-	3: 4000
+	3: 3500
 }
 
 func _ready():
@@ -271,12 +271,14 @@ func _handle_stage3_completion():
 	SaveManager.reward_item = new_reward
 
 	# 重設回第一階段起點
+	total_score = 0
 	current_stage = 1
 	move_direction = 1
 	current_tile_index = 0
 	_rebuild_map()
 	_on_window_resized()
 
+	SaveManager.total_accumulated_score = 0 
 	is_event_active = false
 	board_completed.emit()
 
