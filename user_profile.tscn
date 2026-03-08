@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d2ctule2sf88p"]
 
-[ext_resource type="Script" uid="uid://bh36chmrbc83v" path="res://user_profile.gd" id="1_g1qiq"]
+[ext_resource type="Script" uid="uid://reu4tocoo1ij" path="res://user_profile/user_profile.gd" id="1_g1qiq"]
 
 [node name="UserProfile" type="Control" unique_id=1930775711]
 layout_mode = 3
