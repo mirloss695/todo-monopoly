@@ -142,10 +142,6 @@ func _on_profile_pressed():
 
 func _on_switch_pressed():
 	if not is_on_map:
-		if todo_board.is_editing:
-			todo_board.warning_dialog.dialog_text = "⚠️ 請先點擊「確認儲存」\n儲存變更後才能切換至地圖板塊！"
-			todo_board.warning_dialog.popup_centered()
-			return
 		is_on_map = true
 		todo_board.hide()
 		map_board.show()
