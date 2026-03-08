@@ -35,12 +35,21 @@ var roll_dice_btn: Button
 var stage_panel: ColorRect
 var stage_yes_btn: Button
 var stage_no_btn: Button
+var chest_panel: ColorRect
+var chest_reward_lbl: Label
+var chest_claim_btn: Button
+var new_reward_panel: ColorRect
+var new_reward_edit: LineEdit
+var new_reward_confirm_btn: Button
 
 signal _stage_choice_made(go_next: bool)
+signal _chest_claimed
+signal _new_reward_confirmed
 
 const STAGE_THRESHOLDS = {
 	1: 2000,
-	2: 3000
+	2: 3000,
+	3: 4000
 }
 
 func _ready():
@@ -70,6 +79,12 @@ func _setup_ui():
 	stage_panel   = refs["stage_panel"]
 	stage_yes_btn = refs["stage_yes_btn"]
 	stage_no_btn  = refs["stage_no_btn"]
+	chest_panel      = refs["chest_panel"]
+	chest_reward_lbl = refs["chest_reward_lbl"]
+	chest_claim_btn  = refs["chest_claim_btn"]
+	new_reward_panel      = refs["new_reward_panel"]
+	new_reward_edit       = refs["new_reward_edit"]
+	new_reward_confirm_btn = refs["new_reward_confirm_btn"]
 
 	roll_dice_btn.pressed.connect(_on_roll_dice_pressed)
 	continue_btn.pressed.connect(func():
@@ -83,6 +98,14 @@ func _setup_ui():
 	stage_no_btn.pressed.connect(func():
 		stage_panel.hide()
 		_stage_choice_made.emit(false)
+	)
+	chest_claim_btn.pressed.connect(func():
+		chest_panel.hide()
+		_chest_claimed.emit()
+	)
+	new_reward_confirm_btn.pressed.connect(func():
+		new_reward_panel.hide()
+		_new_reward_confirmed.emit()
 	)
 
 func _rebuild_map():
@@ -110,6 +133,8 @@ func _on_window_resized():
 	if map_root: map_root.position = (screen_size - map_size) / 2.0
 	if event_panel: event_panel.position = (screen_size - event_panel.size) / 2.0
 	if stage_panel: stage_panel.position = (screen_size - stage_panel.size) / 2.0
+	if chest_panel: chest_panel.position = (screen_size - chest_panel.size) / 2.0
+	if new_reward_panel: new_reward_panel.position = (screen_size - new_reward_panel.size) / 2.0
 	if roll_dice_btn:
 		var map_bottom_y = (screen_size.y + map_size.y) / 2.0
 		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, map_bottom_y - 40)
@@ -194,7 +219,12 @@ func _handle_end_tile():
 		board_completed.emit()
 		return
 
-	# ask_player
+	# ask_player — 第三階段特殊處理
+	if current_stage == 3:
+		await _handle_stage3_completion()
+		return
+
+	# 一般升階
 	var desc_lbl = stage_panel.get_node("Desc") as Label
 	desc_lbl.text = "你的分數已達 %d 分！\n要前往【階段 %d】嗎？" % [total_score, current_stage + 1]
 	stage_panel.show()
@@ -210,6 +240,42 @@ func _handle_end_tile():
 		_on_window_resized()
 	else:
 		move_direction = -1
+
+	is_event_active = false
+	board_completed.emit()
+
+# ==========================================
+# 🎁 第三階段完成 — 開寶箱 + 重設
+# ==========================================
+func _handle_stage3_completion():
+	# 顯示開寶箱畫面
+	var reward_text = SaveManager.reward_item
+	if reward_text != "":
+		chest_reward_lbl.text = "你獲得了你的獎勵：\n「%s」！🎊" % reward_text
+	else:
+		chest_reward_lbl.text = "你成功完成了所有挑戰！🎊\n繼續向下一個目標前進吧！"
+	chest_panel.show()
+	_on_window_resized()
+
+	await self._chest_claimed
+
+	# 顯示設定新獎勵面板
+	new_reward_edit.text = ""
+	new_reward_panel.show()
+	_on_window_resized()
+
+	await self._new_reward_confirmed
+
+	# 儲存新獎勵
+	var new_reward = new_reward_edit.text.strip_edges()
+	SaveManager.reward_item = new_reward
+
+	# 重設回第一階段起點
+	current_stage = 1
+	move_direction = 1
+	current_tile_index = 0
+	_rebuild_map()
+	_on_window_resized()
 
 	is_event_active = false
 	board_completed.emit()

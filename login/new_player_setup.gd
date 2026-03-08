@@ -87,6 +87,15 @@ func show_on(host: Control) -> void:
 	reward_edit.add_theme_font_size_override("font_size", 20)
 	vb.add_child(reward_edit)
 
+# --- 狀態提示 ---
+	var status_lbl = Label.new()
+	status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_lbl.add_theme_font_size_override("font_size", 17)
+	status_lbl.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
+	status_lbl.custom_minimum_size = Vector2(420, 0)
+	status_lbl.text = ""
+	vb.add_child(status_lbl)
+
 	# --- 確認按鈕 ---
 	var confirm_btn = Button.new()
 	confirm_btn.text = "✅ 確認，開始遊戲！"
@@ -98,8 +107,11 @@ func show_on(host: Control) -> void:
 	confirm_btn.pressed.connect(func():
 		var n = name_edit.text.strip_edges()
 		var r = reward_edit.text.strip_edges()
-		SaveManager.user_name   = n if n != "" else "新手玩家"
-		SaveManager.reward_item = r if r != "" else "豪華大餐一頓"
+		if n == "":
+			status_lbl.text = "❌ 用戶名稱不能留空！"
+			return
+		SaveManager.user_name   = n
+		SaveManager.reward_item = r   # 可以是空字串
 		SaveManager.save_to_cloud()
 		_cleanup()
 		setup_done.emit()
