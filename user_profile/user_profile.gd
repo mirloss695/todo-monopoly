@@ -70,7 +70,7 @@ func update_display():
 		1: prefix = "遠在天邊的"
 		2: prefix = "一點一點靠近的"
 		3: prefix = "就快要抵達了的"
-		_: prefix = "未知的"
+		_: prefix = "遠在天邊的"
 	reward_prefix_label.text = prefix
 
 func _on_name_changed(new_text: String):

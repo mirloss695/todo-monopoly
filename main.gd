@@ -120,6 +120,7 @@ func _sync_all_data():
 	profile_board.total_score = global_score
 	profile_board.current_stage = global_stage
 	profile_board.play_days = global_day
+	profile_board.move_direction = map_board.move_direction
 	profile_board.update_display()
 
 func _update_switch_btn_text():
