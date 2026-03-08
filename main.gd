@@ -83,6 +83,8 @@ func _load_from_save_manager():
 	map_board.total_score        = SaveManager.total_accumulated_score
 	map_board.current_tile_index = SaveManager.map_tile_index
 	map_board.move_direction     = SaveManager.map_move_direction
+	map_board._rebuild_map()
+	map_board._on_window_resized()
 
 	# 還原帳號面板
 	profile_board.user_name     = SaveManager.user_name
