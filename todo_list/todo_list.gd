@@ -16,6 +16,8 @@ var is_editing = true
 var can_switch_board = false
 var task_rows = []
 
+var scroll_vbox: VBoxContainer
+
 # --- 時光機歷史系統變數 ---
 var actual_day = 1
 var current_view_day = 1
@@ -45,7 +47,9 @@ func _ready():
 
 func _setup_ui():
 	var refs = TodoUIBuilder.build(self)
-
+	
+	scroll_vbox = refs["scroll_vbox"]
+	
 	header_label       = refs["header_label"]
 	limits_label       = refs["limits_label"]
 	score_label        = refs["score_label"]
@@ -86,8 +90,15 @@ func update_day_navigation():
 		tasks_container.hide()
 		btn_hbox.hide()
 		board_status_label.hide()
+
+		# 每次重新建立，避免 VBoxContainer layout 狀態污染
+		if is_instance_valid(history_container):
+			history_container.free()
+		history_container = VBoxContainer.new()
+		history_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll_vbox.add_child(history_container)
+
 		TodoHistory.build_view(history_container, current_view_day, task_history)
-		history_container.show()
 		var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
 		score_label.text = "🏆 歷史總分檢視  |  🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
 

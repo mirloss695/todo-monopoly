@@ -83,6 +83,7 @@ static func build(host: Control) -> Dictionary:
 	history_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	history_container.hide()
 	scroll_vbox.add_child(history_container)
+	refs["scroll_vbox"] = scroll_vbox
 	refs["history_container"] = history_container
 
 	main_vbox.add_child(scroll)
