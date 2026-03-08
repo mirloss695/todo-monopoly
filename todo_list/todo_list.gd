@@ -91,17 +91,10 @@ func update_day_navigation():
 		btn_hbox.hide()
 		board_status_label.hide()
 
-		# 每次重新建立，避免 VBoxContainer layout 狀態污染
-		if is_instance_valid(history_container):
-			history_container.free()
-		history_container = VBoxContainer.new()
-		history_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		scroll_vbox.add_child(history_container)
-
+		history_container.show()
 		TodoHistory.build_view(history_container, current_view_day, task_history)
 		var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
 		score_label.text = "🏆 歷史總分檢視  |  🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
-
 func _on_prev_day_pressed():
 	if current_view_day > 1:
 		current_view_day -= 1

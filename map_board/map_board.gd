@@ -143,7 +143,7 @@ func _on_window_resized():
 # 骰子與移動
 # ==========================================
 func activate_dice():
-	if current_tile_index != 19:
+	if current_tile_index != 19 or move_direction == -1:
 		roll_dice_btn.show()
 
 func _on_roll_dice_pressed():
