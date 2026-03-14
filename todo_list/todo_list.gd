@@ -87,14 +87,16 @@ func update_day_navigation():
 		board_status_label.show()
 		update_score_display()
 	else:
+		print("📜 [TodoList] 切換至歷史 day=%d, task_history keys=%s" % [current_view_day, str(task_history.keys())])
 		tasks_container.hide()
 		btn_hbox.hide()
 		board_status_label.hide()
 
 		history_container.show()
-		TodoHistory.build_view(history_container, current_view_day, task_history)
+		await TodoHistory.build_view(history_container, current_view_day, task_history)
 		var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
 		score_label.text = "🏆 歷史總分檢視  |  🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
+
 func _on_prev_day_pressed():
 	if current_view_day > 1:
 		current_view_day -= 1
@@ -213,10 +215,12 @@ func reset_for_new_day():
 	var history_data = []
 	for row_data in task_rows:
 		history_data.append(TodoTaskRow.serialize(row_data))
-	task_history[actual_day] = {
-		"tasks": history_data,
+	var day_key = actual_day
+	task_history[day_key] = {
+		"tasks": history_data.duplicate(true),
 		"score": today_total_score
 	}
+	print("📜 [TodoList] 歷史寫入 day=%d, tasks=%d, score=%d" % [day_key, history_data.size(), today_total_score])
 
 	actual_day += 1
 	current_view_day = actual_day

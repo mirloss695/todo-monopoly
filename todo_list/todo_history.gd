@@ -6,8 +6,11 @@ const COL_WIDTHS = [50, 60, 400, 120, 120, 120, 100]
 ## 清空 history_container 並根據指定天數的歷史資料重建唯讀列表
 static func build_view(container: VBoxContainer, day: int, task_history: Dictionary) -> void:
 	for child in container.get_children():
-		child.free()
-
+		child.queue_free()
+	
+	# 等一幀讓舊節點清除
+	await container.get_tree().process_frame
+	
 	var data = task_history.get(day, {"tasks": [], "score": 0})
 	var index = 1
 

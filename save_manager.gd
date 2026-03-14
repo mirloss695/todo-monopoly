@@ -120,14 +120,13 @@ func _build_save_dict() -> Dictionary:
 	}
 
 func _apply_save(data: Dictionary) -> void:
-	current_stage           = data.get("current_stage",           1)
-	total_accumulated_score = data.get("total_accumulated_score", 0)
-	actual_day              = data.get("actual_day",              1)
-	map_tile_index          = data.get("map_tile_index",          0)
-	map_move_direction      = data.get("map_move_direction",      1)
+	current_stage           = int(data.get("current_stage",           1))
+	total_accumulated_score = int(data.get("total_accumulated_score", 0))
+	actual_day              = int(data.get("actual_day",              1))
+	map_tile_index          = int(data.get("map_tile_index",          0))
+	map_move_direction      = int(data.get("map_move_direction",      1))
 	user_name               = data.get("user_name",               "")
 	reward_item             = data.get("reward_item",             "")
-
 	var loaded_history = data.get("task_history", {})
 	task_history.clear()
 	for key in loaded_history:
