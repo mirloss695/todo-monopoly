@@ -38,6 +38,7 @@ var prev_day_btn: Button
 var next_day_btn: Button
 var today_btn: Button
 var warning_dialog: AcceptDialog
+var sfx_complete: AudioStreamPlayer
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -73,6 +74,12 @@ func _setup_ui():
 	add_task_btn.pressed.connect(_on_add_task_pressed)
 	toggle_save_btn.pressed.connect(_on_toggle_save_pressed)
 	finish_btn.pressed.connect(_on_finish_pressed)
+	
+	sfx_complete = AudioStreamPlayer.new()
+	var stream = load("res://sounds/task_complete.wav")
+	if stream:
+		sfx_complete.stream = stream
+	add_child(sfx_complete)
 
 # ==========================================
 # 時光機與歷史紀錄系統
@@ -146,6 +153,8 @@ func _on_task_toggled(is_checked: bool, row_data: Dictionary):
 	var delta = TodoTaskRow.handle_toggle(is_checked, row_data)
 	today_total_score += delta
 	update_score_display()
+	if is_checked and sfx_complete and sfx_complete.stream:
+		sfx_complete.play()
 	request_save.emit()
 
 func update_score_display():
