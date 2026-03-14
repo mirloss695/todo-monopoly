@@ -40,6 +40,15 @@ static func build(host: Control) -> Dictionary:
 	header_hbox.add_child(next_day_btn)
 	refs["next_day_btn"] = next_day_btn
 
+	var today_btn = Button.new()
+	today_btn.text = "📌 今天"
+	today_btn.custom_minimum_size = Vector2(90, 40)
+	today_btn.add_theme_font_size_override("font_size", 18)
+	today_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	today_btn.hide()
+	header_hbox.add_child(today_btn)
+	refs["today_btn"] = today_btn
+
 	main_vbox.add_child(header_hbox)
 
 	# --- 第二列：點數與加權上限 ---

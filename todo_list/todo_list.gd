@@ -34,9 +34,10 @@ var btn_hbox: HBoxContainer
 var add_task_btn: Button
 var toggle_save_btn: Button
 var finish_btn: Button
-var warning_dialog: AcceptDialog
 var prev_day_btn: Button
 var next_day_btn: Button
+var today_btn: Button
+var warning_dialog: AcceptDialog
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -47,9 +48,12 @@ func _ready():
 
 func _setup_ui():
 	var refs = TodoUIBuilder.build(self)
-	
+	today_btn = refs["today_btn"]
+	today_btn.pressed.connect(func():
+		current_view_day = actual_day
+		update_day_navigation()
+	)
 	scroll_vbox = refs["scroll_vbox"]
-	
 	header_label       = refs["header_label"]
 	limits_label       = refs["limits_label"]
 	score_label        = refs["score_label"]
@@ -81,12 +85,16 @@ func update_day_navigation():
 	next_day_btn.disabled = (current_view_day >= actual_day)
 
 	if current_view_day == actual_day:
+		today_btn.hide()
 		history_container.hide()
 		tasks_container.show()
 		btn_hbox.show()
 		board_status_label.show()
+		limits_label.show()
 		update_score_display()
 	else:
+		limits_label.hide()
+		today_btn.show()
 		print("📜 [TodoList] 切換至歷史 day=%d, task_history keys=%s" % [current_view_day, str(task_history.keys())])
 		tasks_container.hide()
 		btn_hbox.hide()
@@ -95,7 +103,7 @@ func update_day_navigation():
 		history_container.show()
 		await TodoHistory.build_view(history_container, current_view_day, task_history)
 		var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
-		score_label.text = "🏆 歷史總分檢視  |  🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
+		score_label.text = "🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
 
 func _on_prev_day_pressed():
 	if current_view_day > 1:

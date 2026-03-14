@@ -90,8 +90,11 @@ static func create(container: VBoxContainer, daily_points_limit: int) -> Diction
 static func set_locked(row_data: Dictionary, locked: bool) -> void:
 	if locked:
 		row_data["line_edit"].editable = false
+		row_data["line_edit"].add_theme_color_override("font_uneditable_color", Color.WHITE)
 		row_data["points_spin"].editable = false
+		row_data["points_spin"].get_line_edit().add_theme_color_override("font_uneditable_color", Color.WHITE)
 		row_data["weight_spin"].editable = false
+		row_data["weight_spin"].get_line_edit().add_theme_color_override("font_uneditable_color", Color.WHITE)
 		row_data["del_btn"].disabled = true
 		row_data["checkbox"].disabled = false
 	else:
