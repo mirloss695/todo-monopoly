@@ -66,29 +66,29 @@ static func build(host: Control) -> Dictionary:
 
 	var name_input = LineEdit.new()
 	name_input.add_theme_font_size_override("font_size", 24)
-	_add_grid_row(grid, "▹ 使用者名稱", name_input)
+	_add_grid_row(grid, "▶ 使用者名稱", name_input)
 	refs["name_input"] = name_input
 
 	var score_label = Label.new()
 	score_label.add_theme_font_size_override("font_size", 24)
-	_add_grid_row(grid, "▹ 目前累積得分", score_label)
+	_add_grid_row(grid, "▶ 目前累積得分", score_label)
 	refs["score_label"] = score_label
 
 	var stage_label = RichTextLabel.new()
 	stage_label.bbcode_enabled = true
 	stage_label.fit_content = true
 	stage_label.add_theme_font_size_override("normal_font_size", 24)
-	_add_grid_row(grid, "▹ 目前階段狀況", stage_label)
+	_add_grid_row(grid, "▶ 目前階段狀況", stage_label)
 	refs["stage_label"] = stage_label
 
 	var date_label = Label.new()
 	date_label.add_theme_font_size_override("font_size", 24)
-	_add_grid_row(grid, "▹ 今天日期", date_label)
+	_add_grid_row(grid, "▶ 今天日期", date_label)
 	refs["date_label"] = date_label
 
 	var days_label = Label.new()
 	days_label.add_theme_font_size_override("font_size", 24)
-	_add_grid_row(grid, "▹ 累計遊玩天數", days_label)
+	_add_grid_row(grid, "▶ 累計遊玩天數", days_label)
 	refs["days_label"] = days_label
 
 	# --- 獎勵目標列 ---

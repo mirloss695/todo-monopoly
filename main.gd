@@ -216,3 +216,18 @@ func _check_new_day():
 	_sync_all_data()
 	todo_board.new_day_from_login()
 	_save_to_save_manager()
+	
+	## 作弊面板用：前進或後退指定天數
+
+func cheat_advance_day(delta: int) -> void:
+	if delta > 0:
+		for i in range(delta):
+			global_day += 1
+			todo_board.new_day_from_login()  # 會自行 +1 actual_day 並重置任務列
+	elif delta < 0:
+		global_day = max(1, global_day + delta)
+		todo_board.actual_day = global_day
+		todo_board.current_view_day = global_day
+		todo_board.update_day_navigation()
+	_sync_all_data()
+	_save_to_save_manager()

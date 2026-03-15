@@ -125,11 +125,32 @@ func _build_ui():
 	_add_action_row(vbox, "🌀 跳到階段", stage_spin, "跳階", _on_set_stage)
 
 	# --- 跳天數 ---
-	day_spin = SpinBox.new()
-	day_spin.min_value = 1
-	day_spin.max_value = 999
-	day_spin.value = 1
-	_add_action_row(vbox, "📅 設定天數", day_spin, "套用", _on_set_day)
+	var day_hbox = HBoxContainer.new()
+	day_hbox.add_theme_constant_override("separation", 8)
+
+	var day_lbl = Label.new()
+	day_lbl.text = "📅 天數跳躍"
+	day_lbl.add_theme_font_size_override("font_size", 16)
+	day_lbl.custom_minimum_size = Vector2(140, 0)
+	day_hbox.add_child(day_lbl)
+
+	var prev_day_btn = Button.new()
+	prev_day_btn.text = "◀ 前一天"
+	prev_day_btn.custom_minimum_size = Vector2(100, 34)
+	prev_day_btn.add_theme_font_size_override("font_size", 14)
+	prev_day_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	prev_day_btn.pressed.connect(_on_prev_day)
+	day_hbox.add_child(prev_day_btn)
+
+	var next_day_btn = Button.new()
+	next_day_btn.text = "後一天 ▶"
+	next_day_btn.custom_minimum_size = Vector2(100, 34)
+	next_day_btn.add_theme_font_size_override("font_size", 14)
+	next_day_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	next_day_btn.pressed.connect(_on_next_day)
+	day_hbox.add_child(next_day_btn)
+
+	vbox.add_child(day_hbox)
 
 	# --- 面板定位在右上角 ---
 	panel.position = Vector2(get_viewport().get_visible_rect().size.x - 380, 20)
@@ -196,7 +217,6 @@ func _refresh_status():
 	tile_spin.value = map_board.current_tile_index
 	score_spin.value = map_board.total_score
 	stage_spin.value = map_board.current_stage
-	day_spin.value = main_ctrl.global_day
 	dir_btn.text = ("→ 順時針" if map_board.move_direction == 1 else "← 逆時針")
 
 # ==========================================
@@ -240,8 +260,12 @@ func _on_set_stage():
 	main_ctrl._sync_all_data()
 	_refresh_status()
 
-func _on_set_day():
+func _on_prev_day():
 	if not main_ctrl: return
-	main_ctrl.global_day = int(day_spin.value)
-	main_ctrl._sync_all_data()
+	main_ctrl.cheat_advance_day(-1)
+	_refresh_status()
+
+func _on_next_day():
+	if not main_ctrl: return
+	main_ctrl.cheat_advance_day(1)
 	_refresh_status()
