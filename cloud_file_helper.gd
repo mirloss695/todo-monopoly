@@ -12,7 +12,7 @@ const LL_VERSION   = "2021-03-01"
 const MAX_RETRIES  = 3
 const RETRY_DELAY  = 1.5
 const DOMAIN_KEY   = "mmdnk4rj"
-const CORS_PROXY_URL = "https://proud-morning-85ca.eva060121.workers.dev/"
+const CORS_PROXY_URL = "https://proud-morning-85ca.eva060121.workers.dev/proxy"
 
 # ==========================================
 # 📋 列出玩家所有檔案
