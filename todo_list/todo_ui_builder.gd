@@ -19,6 +19,7 @@ static func build(host: Control) -> Dictionary:
 
 	var main_vbox = VBoxContainer.new()
 	main_vbox.add_theme_constant_override("separation", 20)
+	main_vbox.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # ← 新增
 	margin.add_child(main_vbox)
 
 	# --- 第一列：日期導覽 ---
