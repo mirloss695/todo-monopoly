@@ -1,0 +1,35 @@
+name: "Godot Web Deploy"
+on:
+  push:
+    branches:
+      - main  # 如果你的主分支叫 master，請改成 master
+
+permissions:
+  contents: write
+
+jobs:
+  export_web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Godot Web Export
+        uses: firebelley/godot-export@v5.2.1
+        with:
+          godot_executable_download_url: https://downloads.tuxfamily.org/godotengine/4.6/Godot_v4.6-stable_linux_x86_64.zip
+          godot_export_templates_download_url: https://downloads.tuxfamily.org/godotengine/4.6/Godot_v4.6-stable_export_templates.tpz
+          relative_project_path: ./
+          archive_export_output: false
+          export_preset_name: Web  # 這裡要跟你在 Godot Export 視窗左邊的名字一模一樣
+
+      - name: Add COI Service Worker
+        run: |
+          wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O build/web/coi-serviceworker.min.js
+          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' build/web/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/web
+          branch: gh-pages
