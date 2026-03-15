@@ -228,21 +228,9 @@ func _on_finish_pressed():
 	for row_data in task_rows:
 		row_data["checkbox"].disabled = true
 
-func reset_for_new_day():
-	var history_data = []
-	for row_data in task_rows:
-		history_data.append(TodoTaskRow.serialize(row_data))
-	var day_key = actual_day
-	task_history[day_key] = {
-		"tasks": history_data.duplicate(true),
-		"score": today_total_score
-	}
-	print("📜 [TodoList] 歷史寫入 day=%d, tasks=%d, score=%d" % [day_key, history_data.size(), today_total_score])
-
+func new_day_from_login():
 	actual_day += 1
 	current_view_day = actual_day
-	update_day_navigation()
-
 	today_total_score = 0
 	is_editing = true
 	can_switch_board = false
@@ -254,9 +242,9 @@ func reset_for_new_day():
 	finish_btn.text = "🚩 結算今日得分"
 	board_status_label.text = "⚠️ 目前有未儲存的變更，無法轉跳板塊！"
 	board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
-
 	for row_data in task_rows:
 		row_data["row_node"].queue_free()
 	task_rows.clear()
 	add_task_row()
+	update_day_navigation()
 	update_score_display()

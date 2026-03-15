@@ -41,6 +41,8 @@ var chest_claim_btn: Button
 var new_reward_panel: ColorRect
 var new_reward_edit: LineEdit
 var new_reward_confirm_btn: Button
+var today_done_panel: ColorRect
+var today_done_btn: Button
 
 signal _stage_choice_made(go_next: bool)
 signal _chest_claimed
@@ -86,7 +88,8 @@ func _setup_ui():
 	new_reward_panel      = refs["new_reward_panel"]
 	new_reward_edit       = refs["new_reward_edit"]
 	new_reward_confirm_btn = refs["new_reward_confirm_btn"]
-
+	today_done_panel = refs["today_done_panel"]
+	today_done_btn   = refs["today_done_btn"]
 	roll_dice_btn.pressed.connect(_on_roll_dice_pressed)
 	continue_btn.pressed.connect(func():
 		is_waiting_confirm = false
@@ -108,6 +111,7 @@ func _setup_ui():
 		new_reward_panel.hide()
 		_new_reward_confirmed.emit()
 	)
+	today_done_btn.pressed.connect(func(): today_done_panel.hide())
 
 func _rebuild_map():
 	# 清除舊地圖
@@ -138,6 +142,7 @@ func _on_window_resized():
 	if roll_dice_btn:
 		var map_bottom_y = (screen_size.y + map_size.y) / 2.0
 		roll_dice_btn.position = Vector2((screen_size.x - 250) / 2.0, map_bottom_y - 40)
+	if today_done_panel: today_done_panel.position = (screen_size - today_done_panel.size) / 2.0
 
 # ==========================================
 # 骰子與移動
@@ -312,6 +317,11 @@ func _show_chance_wheel():
 			total_score -= result["value"]
 			is_event_active = false
 			board_completed.emit()
+
+## 顯示今日完成提示
+func show_today_done():
+	_on_window_resized()
+	today_done_panel.show()
 
 # ==========================================
 # 🛠️ 作弊模式接口

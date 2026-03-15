@@ -18,6 +18,7 @@ var map_move_direction = 1
 
 var user_name = ""
 var reward_item = ""
+var last_played_date: String = ""
 
 var map_chance_tiles: Array = []
 # ==========================================
@@ -124,7 +125,8 @@ func _build_save_dict() -> Dictionary:
 		"map_move_direction":      map_move_direction,
 		"map_chance_tiles":        map_chance_tiles,
 		"user_name":               user_name,
-		"reward_item":             reward_item
+		"reward_item":             reward_item, 
+		"last_played_date": last_played_date
 	}
 
 func _apply_save(data: Dictionary) -> void:
@@ -137,6 +139,7 @@ func _apply_save(data: Dictionary) -> void:
 	actual_day              = int(data.get("actual_day",              1))
 	map_tile_index          = int(data.get("map_tile_index",          0))
 	map_move_direction      = int(data.get("map_move_direction",      1))
+	last_played_date = data.get("last_played_date", "")
 	var raw_chance = data.get("map_chance_tiles", [])
 	map_chance_tiles = []
 	for v in raw_chance:

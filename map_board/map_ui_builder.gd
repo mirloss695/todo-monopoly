@@ -34,7 +34,8 @@ static func build(host: Node2D) -> Dictionary:
 	# ── 設定新獎勵面板 ──
 	var new_reward_panel = _build_new_reward_panel(ui_layer)
 	refs.merge(new_reward_panel)
-
+	var today_done_panel = _build_today_done_panel(ui_layer)
+	refs.merge(today_done_panel)
 	return refs
 
 # ── 事件面板 ──
@@ -240,4 +241,47 @@ static func _build_new_reward_panel(parent: CanvasLayer) -> Dictionary:
 	refs["new_reward_panel"] = new_reward_panel
 	refs["new_reward_edit"] = reward_edit
 	refs["new_reward_confirm_btn"] = confirm_btn
+	return refs
+
+# ── 今日完成提示面板 ──
+
+static func _build_today_done_panel(parent: CanvasLayer) -> Dictionary:
+	var refs := {}
+
+	var panel = ColorRect.new()
+	panel.color = Color(0, 0, 0, 0.90)
+	panel.size = Vector2(460, 240)
+	parent.add_child(panel)
+
+	var title = Label.new()
+	title.text = "🌙 今日已完成！"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.position = Vector2(0, 28)
+	title.size = Vector2(460, 50)
+	title.add_theme_font_size_override("font_size", 28)
+	title.set("theme_override_colors/font_color", Color.GOLD)
+	panel.add_child(title)
+
+	var desc = Label.new()
+	desc.text = "今天的地圖行程已結束。\n明天再來繼續你的旅程吧！ 🌟"
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.position = Vector2(20, 88)
+	desc.size = Vector2(420, 80)
+	desc.add_theme_font_size_override("font_size", 20)
+	desc.set("theme_override_colors/font_color", Color.WHITE)
+	panel.add_child(desc)
+
+	var ok_btn = Button.new()
+	ok_btn.text = "好的，明天見！"
+	ok_btn.custom_minimum_size = Vector2(200, 48)
+	ok_btn.position = Vector2((460 - 200) / 2.0, 176)
+	ok_btn.add_theme_font_size_override("font_size", 20)
+	ok_btn.set("theme_override_colors/font_color", Color.AQUAMARINE)
+	ok_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	panel.add_child(ok_btn)
+	panel.hide()
+
+	refs["today_done_panel"] = panel
+	refs["today_done_btn"] = ok_btn
 	return refs

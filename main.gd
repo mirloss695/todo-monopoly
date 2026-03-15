@@ -12,12 +12,10 @@ var global_stage = 1
 
 var profile_btn: Button
 var switch_btn: Button
-var next_day_btn: Button
 
 var is_board_finished = false
 var is_on_map = false
 var is_switch_hovered = false
-var is_map_completed = false
 
 var cheat_panel: CheatPanel
 
@@ -33,7 +31,7 @@ func _ready():
 	map_board.board_completed.connect(_on_map_completed)
 
 	_load_from_save_manager()
-
+	_check_new_day()
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
@@ -47,11 +45,9 @@ func _setup_top_bar():
 	var refs = TopBarBuilder.build(self)
 	profile_btn  = refs["profile_btn"]
 	switch_btn   = refs["switch_btn"]
-	next_day_btn = refs["next_day_btn"]
 
 	profile_btn.pressed.connect(_on_profile_pressed)
 	switch_btn.pressed.connect(_on_switch_pressed)
-	next_day_btn.pressed.connect(_on_next_day_pressed)
 
 	switch_btn.mouse_entered.connect(func():
 		is_switch_hovered = true
@@ -105,6 +101,7 @@ func _load_from_save_manager():
 # 🔄 寫回 SaveManager 並存檔
 # ==========================================
 func _save_to_save_manager():
+	SaveManager.last_played_date = _get_today_string()
 	SaveManager.total_accumulated_score = global_score
 	SaveManager.actual_day              = global_day
 	SaveManager.current_stage           = global_stage
@@ -142,8 +139,6 @@ func _update_switch_btn_text():
 
 func _on_window_resized():
 	var screen_size = get_viewport_rect().size
-	if next_day_btn:
-		next_day_btn.position = screen_size - next_day_btn.size - Vector2(40, 40)
 
 # ==========================================
 # 按鈕回呼
@@ -159,11 +154,9 @@ func _on_switch_pressed():
 		is_on_map = true
 		todo_board.hide()
 		map_board.show()
-		next_day_btn.show() if is_map_completed else next_day_btn.hide()
 	else:
 		is_on_map = false
 		map_board.hide()
-		next_day_btn.hide()
 		todo_board.show()
 
 	_update_switch_btn_text()
@@ -200,36 +193,26 @@ func _on_todo_finished():
 # 包含機會格、升降階、一般格落地
 # ==========================================
 func _on_map_completed():
-	is_map_completed = true
 	global_score = map_board.total_score
 	global_stage = map_board.current_stage
 	_sync_all_data()
-
-	if is_on_map:
-		next_day_btn.show()
-
-	# 存檔：地圖事件結束
+	map_board.show_today_done()
 	_save_to_save_manager()
 
 # ==========================================
 # 💾 存檔節點 3：進入下一天
 # ==========================================
-func _on_next_day_pressed():
-	global_score = map_board.total_score
+func _get_today_string() -> String:
+	var t = Time.get_date_dict_from_system()
+	return "%04d-%02d-%02d" % [t.year, t.month, t.day]
+
+func _check_new_day():
+	var today = _get_today_string()
+	if SaveManager.last_played_date == "" or SaveManager.last_played_date == today:
+		return
+	# 偵測到新的日曆日，自動推進遊戲天數
+	print("📅 [Main] 偵測到新的一天（上次：%s，今天：%s），自動推進天數" % [SaveManager.last_played_date, today])
 	global_day += 1
-	is_board_finished = false
-	is_on_map = false
-	is_map_completed = false
 	_sync_all_data()
-
-	map_board.hide()
-	next_day_btn.hide()
-	_update_switch_btn_text()
-
-	if todo_board.has_method("reset_for_new_day"):
-		todo_board.reset_for_new_day()
-
-	todo_board.show()
-
-	# 存檔：天數推進
+	todo_board.new_day_from_login()
 	_save_to_save_manager()

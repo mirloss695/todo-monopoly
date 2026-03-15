@@ -31,15 +31,4 @@ static func build(host: Control) -> Dictionary:
 	top_bar.add_child(switch_btn)
 	refs["switch_btn"] = switch_btn
 
-	# --- 右下角「下一天」按鈕 ---
-	var next_day_btn = Button.new()
-	next_day_btn.text = "🌙 結束今天，進入下一天"
-	next_day_btn.custom_minimum_size = Vector2(260, 60)
-	next_day_btn.add_theme_font_size_override("font_size", 22)
-	next_day_btn.set("theme_override_colors/font_color", Color.AQUAMARINE)
-	next_day_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	host.add_child(next_day_btn)
-	next_day_btn.hide()
-	refs["next_day_btn"] = next_day_btn
-
 	return refs
