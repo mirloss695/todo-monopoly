@@ -39,14 +39,14 @@ static func build(host: Control) -> Dictionary:
 
 	# --- 標題 ---
 	var title_label = Label.new()
-	title_label.text = "Todo Monopoly\n雲端連線系統"
+	title_label.text = "Todo Monopoly\n註冊/登入"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 32)
 	title_label.set("theme_override_colors/font_color", Color.GOLD)
 	vbox.add_child(title_label)
 
 	var desc_label = Label.new()
-	desc_label.text = "※ 請使用電子郵件與密碼登入\n※ 新玩家請點「註冊帳號」建立帳號"
+	desc_label.text = "※ 請使用帳號與密碼登入\n※ 新玩家請點「註冊帳號」建立帳號"
 	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_label.add_theme_font_size_override("font_size", 16)
 	desc_label.set("theme_override_colors/font_color", Color.GRAY)
@@ -54,7 +54,7 @@ static func build(host: Control) -> Dictionary:
 
 	# --- 輸入框 ---
 	var email_input = LineEdit.new()
-	email_input.placeholder_text = "請輸入電子郵件 (例: ken@example.com)"
+	email_input.placeholder_text = "請輸入帳號"
 	email_input.custom_minimum_size = Vector2(350, 50)
 	email_input.add_theme_font_size_override("font_size", 18)
 	email_input.alignment = HORIZONTAL_ALIGNMENT_CENTER

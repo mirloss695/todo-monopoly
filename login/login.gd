@@ -44,7 +44,7 @@ func _on_register_pressed():
 	var password = password_input.text.strip_edges()
 
 	if email == "" or password == "":
-		_set_status("❌ 電子郵件與密碼不可為空！", Color.LIGHT_CORAL)
+		_set_status("❌ 帳號與密碼不可為空！", Color.LIGHT_CORAL)
 		return
 
 	if password.length() < 8:
@@ -58,9 +58,9 @@ func _on_register_pressed():
 	_set_buttons_disabled(false)
 
 	if response.success:
-		_set_status("✅ 帳號建立成功！\n請至信箱驗證後再登入。", Color.GREEN_YELLOW)
+		_set_status("✅ 帳號建立成功！", Color.GREEN_YELLOW)
 	else:
-		_set_status("❌ 建立帳號失敗，該信箱可能已被使用", Color.LIGHT_CORAL)
+		_set_status("❌ 建立帳號失敗，該帳號可能已被使用", Color.LIGHT_CORAL)
 
 # ==========================================
 # 🚀 登入並開始遊戲
@@ -70,7 +70,7 @@ func _on_login_pressed():
 	var password = password_input.text.strip_edges()
 
 	if email == "" or password == "":
-		_set_status("❌ 電子郵件與密碼不可為空！", Color.LIGHT_CORAL)
+		_set_status("❌ 帳號與密碼不可為空！", Color.LIGHT_CORAL)
 		return
 
 	_set_status("⏳ 正在連線至雲端伺服器...", Color.YELLOW)
@@ -90,4 +90,4 @@ func _on_login_pressed():
 
 		get_tree().change_scene_to_file("res://main.tscn")
 	else:
-		_set_status("❌ 登入失敗，請確認帳號密碼，\n或先至信箱完成驗證", Color.LIGHT_CORAL)
+		_set_status("❌ 登入失敗，請確認帳號密碼，\n未註冊玩家請先註冊", Color.LIGHT_CORAL)
