@@ -34,11 +34,12 @@ jobs:
           # 精準呼叫你設定的 "Web" 預設值
           ./godot --headless --export-release "Web" build/web/index.html
 
-      - name: Add COI Service Worker
+      - name: Add COI Service Worker (credentialless)
         run: |
-          # 加入解決黑屏的腳本
-          wget -q https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O build/web/coi-serviceworker.min.js
-          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' build/web/index.html
+          cat > build/web/coi-serviceworker.min.js << 'COIEOF'
+          if(typeof window==='undefined'){self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",(e)=>e.waitUntil(self.clients.claim()));self.addEventListener("fetch",function(e){if(e.request.cache==="only-if-cached"&&e.request.mode!=="same-origin")return;e.respondWith(fetch(e.request).then(r=>{if(r.status===0)return r;const h=new Headers(r.headers);h.set("Cross-Origin-Embedder-Policy","credentialless");h.set("Cross-Origin-Opener-Policy","same-origin");return new Response(r.body,{status:r.status,statusText:r.statusText,headers:h})}))});}else{if(window.crossOriginIsolated===false){const r=window.navigator.serviceWorker;if(r){r.register(window.document.currentScript.src).then(reg=>{if(reg.active&&!r.controller){window.location.reload();}else if(!reg.active){reg.addEventListener("updatefound",()=>{reg.installing.addEventListener("statechange",function(){if(this.state==="activated"){window.location.reload();}});});}})}}}
+          COIEOF
+          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/' build/web/index.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
