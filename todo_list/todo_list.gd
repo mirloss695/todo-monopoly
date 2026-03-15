@@ -129,6 +129,12 @@ func update_task_numbers():
 	for i in range(task_rows.size()):
 		task_rows[i]["num_lbl"].text = str(i + 1) + "."
 
+func serialize_tasks() -> Array:
+	var result = []
+	for row_data in task_rows:
+		result.append(TodoTaskRow.serialize(row_data))
+	return result
+	
 func add_task_row():
 	if not is_editing: return
 	var row_data = TodoTaskRow.create(tasks_container, daily_points_limit)
@@ -227,8 +233,14 @@ func _on_finish_pressed():
 	toggle_save_btn.disabled = true
 	for row_data in task_rows:
 		row_data["checkbox"].disabled = true
+	# 結算時將當天任務存入歷史紀錄
+	task_history[actual_day] = {"tasks": serialize_tasks(), "score": today_total_score}
+	SaveManager.is_day_finished = true
 
 func new_day_from_login():
+		# 保存前一天任務到歷史（若尚未結算）
+	if task_rows.size() > 0 and not task_history.has(actual_day):
+		task_history[actual_day] = {"tasks": serialize_tasks(), "score": today_total_score}
 	actual_day += 1
 	current_view_day = actual_day
 	today_total_score = 0
@@ -246,5 +258,58 @@ func new_day_from_login():
 		row_data["row_node"].queue_free()
 	task_rows.clear()
 	add_task_row()
+	SaveManager.current_day_tasks = []
+	SaveManager.is_day_locked = false
+	SaveManager.is_day_finished = false
+	SaveManager.today_total_score = 0
 	update_day_navigation()
 	update_score_display()
+
+func restore_tasks_from_save(tasks: Array, locked: bool, finished: bool, saved_score: int) -> void:
+	for row_data in task_rows:
+		row_data["row_node"].queue_free()
+	task_rows.clear()
+
+	today_total_score = saved_score
+
+	for task_data in tasks:
+		var row_data = TodoTaskRow.create(tasks_container, daily_points_limit)
+		row_data["del_btn"].pressed.connect(_on_delete_task.bind(row_data))
+		row_data["checkbox"].toggled.connect(_on_task_toggled.bind(row_data))
+
+		row_data["line_edit"].text = task_data.get("text", "")
+		row_data["points_spin"].value = task_data.get("points", 0)
+		row_data["weight_spin"].value = task_data.get("weight", 1)
+
+		if task_data.get("completed", false):
+			row_data["is_completed"] = true
+			row_data["check_mark"].text = "✔"
+			var ts = int(row_data["points_spin"].value * row_data["weight_spin"].value)
+			row_data["task_score_lbl"].text = "+ " + str(ts)
+			row_data["task_score_lbl"].set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+
+		task_rows.append(row_data)
+
+	update_task_numbers()
+	update_score_display()
+
+	if locked or finished:
+		is_editing = false
+		can_switch_board = true
+		add_task_btn.disabled = true
+		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
+		board_status_label.text = "✅ 已儲存。目前可以隨時切換到其他板塊囉！"
+		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+		for row_data in task_rows:
+			TodoTaskRow.set_locked(row_data, true)
+
+	if finished:
+		finish_btn.disabled = true
+		finish_btn.text = "已結算"
+		toggle_save_btn.disabled = true
+		for row_data in task_rows:
+			row_data["checkbox"].disabled = true
+	else:
+		finish_btn.disabled = not locked
+		

@@ -95,6 +95,14 @@ func _load_from_save_manager():
 	profile_board.play_days     = SaveManager.actual_day
 	profile_board.update_display()
 
+	todo_board.today_total_score = SaveManager.today_total_score
+	if SaveManager.current_day_tasks.size() > 0:
+		todo_board.restore_tasks_from_save(
+			SaveManager.current_day_tasks,
+			SaveManager.is_day_locked,
+			SaveManager.is_day_finished,
+			SaveManager.today_total_score
+		)
 	_sync_all_data()
 
 # ==========================================
@@ -114,6 +122,12 @@ func _save_to_save_manager():
 	
 	SaveManager.user_name               = profile_board.user_name
 	SaveManager.reward_item             = profile_board.reward_item
+	SaveManager.today_total_score  = todo_board.today_total_score
+	SaveManager.current_day_tasks  = todo_board.serialize_tasks()
+	SaveManager.is_day_locked      = not todo_board.is_editing
+	SaveManager.is_day_finished    = (todo_board.finish_btn.text == "已結算")
+	# 同步歷史紀錄
+	SaveManager.task_history       = todo_board.task_history
 	SaveManager.save_to_cloud()
 
 # ==========================================

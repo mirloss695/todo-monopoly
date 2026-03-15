@@ -21,6 +21,10 @@ var reward_item = ""
 var last_played_date: String = ""
 
 var map_chance_tiles: Array = []
+var current_day_tasks: Array = []   # 當天任務列表的序列化快照
+var is_day_locked: bool = false     # 是否已按「確認儲存」鎖定
+var is_day_finished: bool = false   # 是否已按「結算今日得分」
+var today_total_score: int = 0      # 當天累計得分
 # ==========================================
 # 🔑 Session Token
 # ==========================================
@@ -126,7 +130,11 @@ func _build_save_dict() -> Dictionary:
 		"map_chance_tiles":        map_chance_tiles,
 		"user_name":               user_name,
 		"reward_item":             reward_item, 
-		"last_played_date": last_played_date
+		"last_played_date": last_played_date, 
+		"current_day_tasks":  current_day_tasks,
+		"is_day_locked":      is_day_locked,
+		"is_day_finished":    is_day_finished,
+		"today_total_score":  today_total_score
 	}
 
 func _apply_save(data: Dictionary) -> void:
@@ -150,3 +158,7 @@ func _apply_save(data: Dictionary) -> void:
 	task_history.clear()
 	for key in loaded_history:
 		task_history[int(key)] = loaded_history[key]
+	current_day_tasks  = data.get("current_day_tasks", [])
+	is_day_locked      = data.get("is_day_locked", false)
+	is_day_finished    = data.get("is_day_finished", false)
+	today_total_score  = int(data.get("today_total_score", 0))
