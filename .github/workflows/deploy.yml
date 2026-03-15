@@ -14,41 +14,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Godot Web Export
-        uses: firebelley/godot-export@v5.2.1
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
-          relative_project_path: ./
-          archive_output: false
-
-      - name: Smart Add COI Service Worker
+      - name: Setup Godot 4.6 & Templates
         run: |
-          # 1. 自動尋找匯出的 HTML 檔案 (排除不相干的資料夾)
-          HTML_FILE=$(find . -name "*.html" -not -path "./.git/*" | grep -v "addons" | head -n 1)
+          wget -q https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
+          unzip -q Godot_v4.6-stable_linux.x86_64.zip
+          mv Godot_v4.6-stable_linux.x86_64 godot
+          chmod +x godot
           
-          if [ -z "$HTML_FILE" ]; then
-            echo "錯誤：找不到 HTML 檔案！可能是匯出失敗。"
-            exit 1
-          fi
+          wget -q https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/4.6.stable/
+          unzip -q Godot_v4.6-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.6.stable/
+
+      - name: Export Web Game
+        run: |
+          # 這裡我們已經知道目錄長怎樣，直接建立資料夾
+          mkdir -p build/web
           
-          # 2. 取得該檔案所在的資料夾路徑
-          EXPORT_DIR=$(dirname "$HTML_FILE")
-          echo "✅ 成功找到網頁檔案位於: $HTML_FILE"
-          echo "📦 準備部署的資料夾為: $EXPORT_DIR"
-          
-          # 3. 下載 Service Worker 到該資料夾
-          wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O "$EXPORT_DIR/coi-serviceworker.min.js"
-          
-          # 4. 注入 Script 到 HTML 中
-          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' "$HTML_FILE"
-          
-          # 5. 將正確的資料夾路徑存起來，交給下一步
-          echo "DEPLOY_FOLDER=$EXPORT_DIR" >> $GITHUB_ENV
+          # 精準呼叫你設定的 "Web" 預設值
+          ./godot --headless --export-release "Web" build/web/index.html
+
+      - name: Add COI Service Worker
+        run: |
+          # 加入解決黑屏的腳本
+          wget -q https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O build/web/coi-serviceworker.min.js
+          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' build/web/index.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # 這裡會自動讀取上一步找到的資料夾
-          folder: ${{ env.DEPLOY_FOLDER }}
+          folder: build/web
           branch: gh-pages
