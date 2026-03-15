@@ -65,6 +65,7 @@ func _ready():
 	self.visibility_changed.connect(_on_visibility_changed)
 
 	_setup_ui()
+	chance_tiles = MapGenerator.generate_chance_tiles()  # ← 新增這行
 	_rebuild_map()
 	_on_window_resized()
 
@@ -115,7 +116,6 @@ func _rebuild_map():
 	map_tiles.clear()
 	if is_instance_valid(player_node): player_node.queue_free()
 
-	chance_tiles = MapGenerator.generate_chance_tiles()
 	map_tiles = MapGenerator.generate_map(map_root, chance_tiles, current_stage, STAGE_THRESHOLDS)
 	player_node = MapGenerator.create_player(map_root, map_tiles, current_tile_index)
 
@@ -236,6 +236,7 @@ func _handle_end_tile():
 		current_stage += 1
 		move_direction = 1
 		current_tile_index = 0
+		chance_tiles = MapGenerator.generate_chance_tiles()
 		_rebuild_map()
 		_on_window_resized()
 	else:
@@ -275,6 +276,7 @@ func _handle_stage3_completion():
 	current_stage = 1
 	move_direction = 1
 	current_tile_index = 0
+	chance_tiles.clear()
 	_rebuild_map()
 	_on_window_resized()
 

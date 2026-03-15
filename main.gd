@@ -82,7 +82,14 @@ func _load_from_save_manager():
 	map_board.total_score        = SaveManager.total_accumulated_score
 	map_board.current_tile_index = SaveManager.map_tile_index
 	map_board.move_direction     = SaveManager.map_move_direction
-	map_board._rebuild_map()        # ← 新增：以正確 tile_index 重建棋子位置
+	map_board.chance_tiles = SaveManager.map_chance_tiles
+	map_board.chance_tiles = SaveManager.map_chance_tiles
+	if map_board.chance_tiles.is_empty():
+		map_board.chance_tiles = MapGenerator.generate_chance_tiles()
+	
+	print("🗺️ [Main] 套用至 map_board.chance_tiles: ", map_board.chance_tiles)
+	
+	map_board._rebuild_map()
 	map_board._on_window_resized()
 
 	profile_board.user_name     = SaveManager.user_name
@@ -104,6 +111,10 @@ func _save_to_save_manager():
 	SaveManager.task_history            = todo_board.task_history
 	SaveManager.map_tile_index          = map_board.current_tile_index
 	SaveManager.map_move_direction      = map_board.move_direction
+	SaveManager.map_chance_tiles = map_board.chance_tiles
+	
+	print("💾 [Main] 存檔時 chance_tiles: ", map_board.chance_tiles)
+	
 	SaveManager.user_name               = profile_board.user_name
 	SaveManager.reward_item             = profile_board.reward_item
 	SaveManager.save_to_cloud()

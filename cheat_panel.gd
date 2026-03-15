@@ -233,6 +233,7 @@ func _on_set_stage():
 	var new_stage = int(stage_spin.value)
 	map_board.current_stage = new_stage
 	map_board.current_tile_index = 0
+	map_board.chance_tiles = MapGenerator.generate_chance_tiles()
 	map_board._rebuild_map()
 	map_board._on_window_resized()
 	main_ctrl.global_stage = new_stage

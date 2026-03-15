@@ -19,6 +19,7 @@ var map_move_direction = 1
 var user_name = ""
 var reward_item = ""
 
+var map_chance_tiles: Array = []
 # ==========================================
 # 🔑 Session Token
 # ==========================================
@@ -36,6 +37,9 @@ var _save_file_id: int = -1
 # 💾 儲存（本機 + 雲端）
 # ==========================================
 func save_to_cloud() -> void:
+	
+	print("☁️ [SaveManager] 上傳前 map_chance_tiles: ", map_chance_tiles)
+	
 	if session_token == "":
 		push_warning("⚠️ [SaveManager] session_token 為空，略過雲端存檔")
 		return
@@ -108,6 +112,9 @@ func _load_cloud() -> bool:
 # 🔧 共用工具
 # ==========================================
 func _build_save_dict() -> Dictionary:
+	
+	print("💾 [SaveManager] 存入 chance_tiles: ", map_chance_tiles)
+	
 	return {
 		"current_stage":           current_stage,
 		"total_accumulated_score": total_accumulated_score,
@@ -115,16 +122,25 @@ func _build_save_dict() -> Dictionary:
 		"actual_day":              actual_day,
 		"map_tile_index":          map_tile_index,
 		"map_move_direction":      map_move_direction,
+		"map_chance_tiles":        map_chance_tiles,
 		"user_name":               user_name,
 		"reward_item":             reward_item
 	}
 
 func _apply_save(data: Dictionary) -> void:
+	
+	print("📂 [SaveManager] 讀取 chance_tiles raw: ", data.get("map_chance_tiles", []))
+	print("📂 [SaveManager] 套用後 chance_tiles: ", map_chance_tiles)
+
 	current_stage           = int(data.get("current_stage",           1))
 	total_accumulated_score = int(data.get("total_accumulated_score", 0))
 	actual_day              = int(data.get("actual_day",              1))
 	map_tile_index          = int(data.get("map_tile_index",          0))
 	map_move_direction      = int(data.get("map_move_direction",      1))
+	var raw_chance = data.get("map_chance_tiles", [])
+	map_chance_tiles = []
+	for v in raw_chance:
+		map_chance_tiles.append(int(v))
 	user_name               = data.get("user_name",               "")
 	reward_item             = data.get("reward_item",             "")
 	var loaded_history = data.get("task_history", {})
