@@ -17,23 +17,38 @@ jobs:
       - name: Godot Web Export
         uses: firebelley/godot-export@v5.2.1
         with:
-          # 1. 改用官方 GitHub 穩定載點，解決下載逾時問題 (注意 linux.x86_64 檔名格式)
           godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
           godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz
-          
           relative_project_path: ./
-          
-          # 2. 修正 Action 參數警告
           archive_output: false
-          use_preset_export_path: true
 
-      - name: Add COI Service Worker
+      - name: Smart Add COI Service Worker
         run: |
-          wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O build/web/coi-serviceworker.min.js
-          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' build/web/index.html
+          # 1. 自動尋找匯出的 HTML 檔案 (排除不相干的資料夾)
+          HTML_FILE=$(find . -name "*.html" -not -path "./.git/*" | grep -v "addons" | head -n 1)
+          
+          if [ -z "$HTML_FILE" ]; then
+            echo "錯誤：找不到 HTML 檔案！可能是匯出失敗。"
+            exit 1
+          fi
+          
+          # 2. 取得該檔案所在的資料夾路徑
+          EXPORT_DIR=$(dirname "$HTML_FILE")
+          echo "✅ 成功找到網頁檔案位於: $HTML_FILE"
+          echo "📦 準備部署的資料夾為: $EXPORT_DIR"
+          
+          # 3. 下載 Service Worker 到該資料夾
+          wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js -O "$EXPORT_DIR/coi-serviceworker.min.js"
+          
+          # 4. 注入 Script 到 HTML 中
+          sed -i 's/<script/<script src="coi-serviceworker.min.js"><\/script><script/g' "$HTML_FILE"
+          
+          # 5. 將正確的資料夾路徑存起來，交給下一步
+          echo "DEPLOY_FOLDER=$EXPORT_DIR" >> $GITHUB_ENV
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: build/web
+          # 這裡會自動讀取上一步找到的資料夾
+          folder: ${{ env.DEPLOY_FOLDER }}
           branch: gh-pages
