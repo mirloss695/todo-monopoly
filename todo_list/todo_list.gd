@@ -5,6 +5,7 @@ extends Control
 ## 歷史檢視委託給 TodoHistory
 
 signal request_save  # ← main.gd 監聽此訊號並呼叫 _save_to_save_manager()
+signal finish_confirmed
 
 var current_stage = 1
 var total_accumulated_score = 0
@@ -39,6 +40,7 @@ var next_day_btn: Button
 var today_btn: Button
 var warning_dialog: AcceptDialog
 var sfx_complete: AudioStreamPlayer
+var confirm_finish_dialog: ConfirmationDialog
 
 func _ready():
 	self.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -66,6 +68,8 @@ func _setup_ui():
 	toggle_save_btn    = refs["toggle_save_btn"]
 	finish_btn         = refs["finish_btn"]
 	warning_dialog     = refs["warning_dialog"]
+	confirm_finish_dialog = refs["confirm_finish_dialog"]
+	confirm_finish_dialog.confirmed.connect(_do_finish)
 	prev_day_btn       = refs["prev_day_btn"]
 	next_day_btn       = refs["next_day_btn"]
 
@@ -226,6 +230,9 @@ func _on_toggle_save_pressed():
 			TodoTaskRow.set_locked(row_data, false)
 
 func _on_finish_pressed():
+	confirm_finish_dialog.popup_centered()
+
+func _do_finish():
 	total_accumulated_score += today_total_score
 	update_score_display()
 	finish_btn.disabled = true
@@ -233,9 +240,7 @@ func _on_finish_pressed():
 	toggle_save_btn.disabled = true
 	for row_data in task_rows:
 		row_data["checkbox"].disabled = true
-	# 結算時將當天任務存入歷史紀錄
-	task_history[actual_day] = {"tasks": serialize_tasks(), "score": today_total_score}
-	SaveManager.is_day_finished = true
+	finish_confirmed.emit()
 
 func new_day_from_login():
 		# 保存前一天任務到歷史（若尚未結算）

@@ -26,7 +26,7 @@ func _ready():
 	get_viewport().size_changed.connect(_on_window_resized)
 	_on_window_resized()
 
-	todo_board.finish_btn.pressed.connect(_on_todo_finished)
+	todo_board.finish_confirmed.connect(_on_todo_finished)
 	todo_board.request_save.connect(_on_todo_request_save)
 	map_board.board_completed.connect(_on_map_completed)
 

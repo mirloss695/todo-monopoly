@@ -143,6 +143,22 @@ static func build(host: Control) -> Dictionary:
 	ok_btn.add_theme_font_size_override("font_size", 18)
 	ok_btn.custom_minimum_size = Vector2(100, 40)
 	refs["warning_dialog"] = warning_dialog
+	
+	# --- 結算確認對話框 ---
+	var confirm_finish_dialog = ConfirmationDialog.new()
+	confirm_finish_dialog.title = "🚩 確認結算今日得分"
+	confirm_finish_dialog.dialog_text = "結算後將會前往地圖擲骰子，\n任務清單將鎖定，無法再編輯。\n\n確定要結算今日得分嗎？"
+	host.add_child(confirm_finish_dialog)
+	var cfd_label = confirm_finish_dialog.get_label()
+	cfd_label.add_theme_font_size_override("font_size", 18)
+	cfd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	confirm_finish_dialog.get_ok_button().text = "✅ 確認結算"
+	confirm_finish_dialog.get_ok_button().add_theme_font_size_override("font_size", 18)
+	confirm_finish_dialog.get_ok_button().custom_minimum_size = Vector2(120, 40)
+	confirm_finish_dialog.get_cancel_button().text = "再想想"
+	confirm_finish_dialog.get_cancel_button().add_theme_font_size_override("font_size", 18)
+	confirm_finish_dialog.get_cancel_button().custom_minimum_size = Vector2(100, 40)
+	refs["confirm_finish_dialog"] = confirm_finish_dialog
 
 	return refs
 
