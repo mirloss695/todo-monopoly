@@ -12,6 +12,7 @@ const LL_VERSION   = "2021-03-01"
 const MAX_RETRIES  = 3
 const RETRY_DELAY  = 1.5
 const DOMAIN_KEY   = "mmdnk4rj"
+const CORS_PROXY_URL = "https://proud-morning-85ca.eva060121.workers.dev/"
 
 # ==========================================
 # 📋 列出玩家所有檔案
@@ -173,13 +174,14 @@ static func update_file(host: Node, session_token: String, file_id: int, filenam
 # ⬇️  下載檔案（GET Signed URL）
 # ==========================================
 static func download_file_by_url(host: Node, url: String) -> String:
-	print("[CloudFile] ▶ download_file url 前60碼：%s..." % url.left(60))
+	var fetch_url = CORS_PROXY_URL + "?url=" + url.uri_encode()
+	print("[CloudFile] ▶ download_file（透過 proxy）")
 
 	for attempt in range(MAX_RETRIES):
 		print("[CloudFile]   download_file 第 %d 次嘗試..." % (attempt + 1))
 		var http = HTTPRequest.new()
 		host.add_child(http)
-		http.request(url, PackedStringArray(), HTTPClient.METHOD_GET)
+		http.request(fetch_url, PackedStringArray(), HTTPClient.METHOD_GET)
 		var result = await http.request_completed
 		http.queue_free()
 
