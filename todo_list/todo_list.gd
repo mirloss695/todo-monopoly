@@ -24,6 +24,11 @@ var actual_day = 1
 var current_view_day = 1
 var task_history = {}
 
+# --- 明日預先規劃 ---
+var next_day_container: VBoxContainer
+var next_day_task_rows: Array = []
+var next_day_editing: bool = true
+
 # --- UI 參照（由 TodoUIBuilder 建立） ---
 var header_label: Label
 var limits_label: Label
@@ -63,6 +68,7 @@ func _setup_ui():
 	board_status_label = refs["board_status_label"]
 	tasks_container    = refs["tasks_container"]
 	history_container  = refs["history_container"]
+	next_day_container = refs["next_day_container"]
 	btn_hbox           = refs["btn_hbox"]
 	add_task_btn       = refs["add_task_btn"]
 	toggle_save_btn    = refs["toggle_save_btn"]
@@ -89,32 +95,97 @@ func _setup_ui():
 # 時光機與歷史紀錄系統
 # ==========================================
 func update_day_navigation():
+	prev_day_btn.disabled = (current_view_day <= 1)
+	next_day_btn.disabled = (current_view_day >= actual_day + 1)
+
+	if current_view_day == actual_day:
+		_show_today_view()
+	elif current_view_day == actual_day + 1:
+		_show_next_day_view()
+	else:
+		_show_history_view()
+
+## --- 今天 ---
+func _show_today_view():
 	header_label.text = "📝 第 %d 天任務規劃 (階段 %d)" % [current_view_day, current_stage]
 	limits_label.text = "🎯 今日可用點數: %d  |  ⚖️ 加權總和上限: %d" % [daily_points_limit, weight_limit]
 
-	prev_day_btn.disabled = (current_view_day <= 1)
-	next_day_btn.disabled = (current_view_day >= actual_day)
+	today_btn.hide()
+	history_container.hide()
+	next_day_container.hide()
+	tasks_container.show()
+	btn_hbox.show()
+	board_status_label.show()
+	limits_label.show()
+	finish_btn.show()
 
-	if current_view_day == actual_day:
-		today_btn.hide()
-		history_container.hide()
-		tasks_container.show()
-		btn_hbox.show()
-		board_status_label.show()
-		limits_label.show()
-		update_score_display()
+	# 還原今天的按鈕狀態
+	_restore_today_btn_states()
+	update_score_display()
+
+## --- 明天預先規劃 ---
+func _show_next_day_view():
+	header_label.text = "📋 第 %d 天任務預先規劃 (階段 %d)" % [current_view_day, current_stage]
+	limits_label.text = "🎯 可用點數: %d  |  ⚖️ 加權總和上限: %d" % [daily_points_limit, weight_limit]
+	score_label.text = "🏆 目前累計分數: %d" % total_accumulated_score
+
+	today_btn.show()
+	tasks_container.hide()
+	history_container.hide()
+	next_day_container.show()
+	btn_hbox.show()
+	board_status_label.show()
+	limits_label.show()
+	finish_btn.hide()
+
+	if next_day_task_rows.is_empty():
+		add_next_day_task_row()
+
+	_update_next_day_btn_states()
+
+## --- 歷史 ---
+func _show_history_view():
+	limits_label.hide()
+	today_btn.show()
+	tasks_container.hide()
+	next_day_container.hide()
+	btn_hbox.hide()
+	board_status_label.hide()
+
+	history_container.show()
+	await TodoHistory.build_view(history_container, current_view_day, task_history)
+	var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
+	score_label.text = "🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
+
+## 還原今天 view 的按鈕狀態（從明天 view 切回時需要）
+func _restore_today_btn_states():
+	var is_finished = (finish_btn.text == "已結算")
+	if is_finished:
+		add_task_btn.disabled = true
+		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
+		toggle_save_btn.disabled = true
+		finish_btn.disabled = true
+		board_status_label.text = "✅ 已結算。目前可以隨時切換到其他板塊囉！"
+		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+	elif not is_editing:
+		# 已儲存但尚未結算
+		add_task_btn.disabled = true
+		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
+		toggle_save_btn.disabled = false
+		finish_btn.disabled = false
+		board_status_label.text = "✅ 已儲存。目前可以隨時切換到其他板塊囉！"
+		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 	else:
-		limits_label.hide()
-		today_btn.show()
-		print("📜 [TodoList] 切換至歷史 day=%d, task_history keys=%s" % [current_view_day, str(task_history.keys())])
-		tasks_container.hide()
-		btn_hbox.hide()
-		board_status_label.hide()
-
-		history_container.show()
-		await TodoHistory.build_view(history_container, current_view_day, task_history)
-		var hist_score = TodoHistory.get_day_score(current_view_day, task_history)
-		score_label.text = "🌟 第 %d 天獲得分數: %d" % [current_view_day, hist_score]
+		# 編輯中
+		add_task_btn.disabled = false
+		toggle_save_btn.text = "💾 確認儲存"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+		toggle_save_btn.disabled = false
+		finish_btn.disabled = true
+		board_status_label.text = "⚠️ 目前有未儲存的變更，無法轉跳板塊！"
+		board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 
 func _on_prev_day_pressed():
 	if current_view_day > 1:
@@ -122,7 +193,7 @@ func _on_prev_day_pressed():
 		update_day_navigation()
 
 func _on_next_day_pressed():
-	if current_view_day < actual_day:
+	if current_view_day < actual_day + 1:
 		current_view_day += 1
 		update_day_navigation()
 
@@ -171,7 +242,11 @@ func update_score_display():
 	if current_view_day == actual_day:
 		score_label.text = "🏆 目前累計分數: %d  |  🌟 本日總分: %d" % [total_accumulated_score, today_total_score]
 
-func _on_add_task_pressed(): add_task_row()
+func _on_add_task_pressed():
+	if current_view_day == actual_day + 1:
+		add_next_day_task_row()
+	else:
+		add_task_row()
 
 # ==========================================
 # 儲存 / 解鎖 / 結算
@@ -179,6 +254,11 @@ func _on_add_task_pressed(): add_task_row()
 
 # 💾 存檔節點：點擊「確認儲存」鎖定任務時
 func _on_toggle_save_pressed():
+	# 分流：明天預先規劃
+	if current_view_day == actual_day + 1:
+		_on_toggle_save_next_day()
+		return
+
 	if is_editing:
 		var total_points = 0
 		var total_weights = 0
@@ -267,6 +347,10 @@ func new_day_from_login():
 	SaveManager.is_day_locked = false
 	SaveManager.is_day_finished = false
 	SaveManager.today_total_score = 0
+	# 清除明日預先規劃
+	_clear_next_day_rows()
+	SaveManager.next_day_tasks = []
+	SaveManager.is_next_day_locked = false
 	update_day_navigation()
 	update_score_display()
 
@@ -317,4 +401,119 @@ func restore_tasks_from_save(tasks: Array, locked: bool, finished: bool, saved_s
 			row_data["checkbox"].disabled = true
 	else:
 		finish_btn.disabled = not locked
-		
+
+# ==========================================
+# 📋 明日預先規劃
+# ==========================================
+
+func add_next_day_task_row():
+	if not next_day_editing:
+		return
+	var row_data = TodoTaskRow.create(next_day_container, daily_points_limit)
+	row_data["del_btn"].pressed.connect(_on_delete_next_day_task.bind(row_data))
+	row_data["checkbox"].disabled = true
+	next_day_task_rows.append(row_data)
+	_update_next_day_numbers()
+
+func _on_delete_next_day_task(row_data: Dictionary):
+	row_data["row_node"].queue_free()
+	next_day_task_rows.erase(row_data)
+	_update_next_day_numbers()
+
+func _update_next_day_numbers():
+	for i in range(next_day_task_rows.size()):
+		next_day_task_rows[i]["num_lbl"].text = str(i + 1) + "."
+
+func serialize_next_day_tasks() -> Array:
+	var result = []
+	for row_data in next_day_task_rows:
+		result.append(TodoTaskRow.serialize(row_data))
+	return result
+
+func _update_next_day_btn_states():
+	if next_day_editing:
+		add_task_btn.disabled = false
+		toggle_save_btn.text = "💾 確認儲存"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+		toggle_save_btn.disabled = false
+		board_status_label.text = "📋 預先規劃模式：規劃明天的任務"
+		board_status_label.set("theme_override_colors/font_color", Color.LIGHT_SKY_BLUE)
+	else:
+		add_task_btn.disabled = true
+		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
+		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
+		toggle_save_btn.disabled = false
+		board_status_label.text = "✅ 明日任務已儲存"
+		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+
+func _on_toggle_save_next_day():
+	if next_day_editing:
+		var total_points = 0
+		var total_weights = 0
+		for row_data in next_day_task_rows:
+			if row_data["line_edit"].text.strip_edges() == "":
+				warning_dialog.dialog_text = "有任務尚未填寫內容哦！\n請填寫或點擊刪除空白任務。"
+				warning_dialog.popup_centered()
+				return
+			total_points += row_data["points_spin"].value
+			total_weights += row_data["weight_spin"].value
+		if total_points > daily_points_limit:
+			warning_dialog.dialog_text = "儲存失敗！\n分配點數總和 (%d) 超過上限 (%d)。" % [total_points, daily_points_limit]
+			warning_dialog.popup_centered()
+			return
+		if total_weights > weight_limit:
+			warning_dialog.dialog_text = "儲存失敗！\n加權總和 (%d) 超過上限 (%d)。" % [total_weights, weight_limit]
+			warning_dialog.popup_centered()
+			return
+
+		next_day_editing = false
+		for row_data in next_day_task_rows:
+			TodoTaskRow.set_locked(row_data, true)
+			row_data["checkbox"].disabled = true
+		_update_next_day_btn_states()
+		request_save.emit()
+	else:
+		next_day_editing = true
+		for row_data in next_day_task_rows:
+			TodoTaskRow.set_locked(row_data, false)
+			row_data["checkbox"].disabled = true
+		_update_next_day_btn_states()
+
+func restore_next_day_from_save(tasks: Array, locked: bool) -> void:
+	_clear_next_day_rows()
+	for task_data in tasks:
+		var row_data = TodoTaskRow.create(next_day_container, daily_points_limit)
+		row_data["del_btn"].pressed.connect(_on_delete_next_day_task.bind(row_data))
+		row_data["checkbox"].disabled = true
+		row_data["line_edit"].text = task_data.get("text", "")
+		row_data["points_spin"].value = task_data.get("points", 0)
+		row_data["weight_spin"].value = task_data.get("weight", 1)
+		next_day_task_rows.append(row_data)
+	_update_next_day_numbers()
+	if locked:
+		next_day_editing = false
+		for row_data in next_day_task_rows:
+			TodoTaskRow.set_locked(row_data, true)
+			row_data["checkbox"].disabled = true
+
+func load_planned_tasks_as_today(tasks: Array) -> void:
+	for row_data in task_rows:
+		row_data["row_node"].queue_free()
+	task_rows.clear()
+	for task_data in tasks:
+		var row_data = TodoTaskRow.create(tasks_container, daily_points_limit)
+		row_data["del_btn"].pressed.connect(_on_delete_task.bind(row_data))
+		row_data["checkbox"].toggled.connect(_on_task_toggled.bind(row_data))
+		row_data["line_edit"].text = task_data.get("text", "")
+		row_data["points_spin"].value = task_data.get("points", 0)
+		row_data["weight_spin"].value = task_data.get("weight", 1)
+		task_rows.append(row_data)
+	update_task_numbers()
+	update_score_display()
+
+func _clear_next_day_rows():
+	for row_data in next_day_task_rows:
+		if is_instance_valid(row_data.get("row_node")):
+			row_data["row_node"].queue_free()
+	next_day_task_rows.clear()
+	next_day_editing = true

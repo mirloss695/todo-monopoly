@@ -16,7 +16,7 @@ var switch_btn: Button
 var is_board_finished = false
 var is_on_map = false
 var is_switch_hovered = false
-
+signal _planned_choice_made(use: bool)
 var cheat_panel: CheatPanel
 
 func _ready():	
@@ -31,7 +31,7 @@ func _ready():
 	map_board.board_completed.connect(_on_map_completed)
 
 	_load_from_save_manager()
-	_check_new_day()
+	await _check_new_day()
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
@@ -103,6 +103,11 @@ func _load_from_save_manager():
 			SaveManager.is_day_finished,
 			SaveManager.today_total_score
 		)
+	if SaveManager.next_day_tasks.size() > 0:
+		todo_board.restore_next_day_from_save(
+			SaveManager.next_day_tasks,
+			SaveManager.is_next_day_locked
+		)
 	_sync_all_data()
 
 # ==========================================
@@ -117,6 +122,8 @@ func _save_to_save_manager():
 	SaveManager.map_tile_index          = map_board.current_tile_index
 	SaveManager.map_move_direction      = map_board.move_direction
 	SaveManager.map_chance_tiles = map_board.chance_tiles
+	SaveManager.next_day_tasks     = todo_board.serialize_next_day_tasks()
+	SaveManager.is_next_day_locked = not todo_board.next_day_editing
 	
 	print("💾 [Main] 存檔時 chance_tiles: ", map_board.chance_tiles)
 	
@@ -128,6 +135,8 @@ func _save_to_save_manager():
 	SaveManager.is_day_finished    = (todo_board.finish_btn.text == "已結算")
 	# 同步歷史紀錄
 	SaveManager.task_history       = todo_board.task_history
+	SaveManager.next_day_tasks     = todo_board.serialize_next_day_tasks()
+	SaveManager.is_next_day_locked = not todo_board.next_day_editing
 	SaveManager.save_to_cloud()
 
 # ==========================================
@@ -224,14 +233,26 @@ func _check_new_day():
 	var today = _get_today_string()
 	if SaveManager.last_played_date == "" or SaveManager.last_played_date == today:
 		return
-	# 偵測到新的日曆日，自動推進遊戲天數
-	print("📅 [Main] 偵測到新的一天（上次：%s，今天：%s），自動推進天數" % [SaveManager.last_played_date, today])
+
+	print("📅 [Main] 偵測到新的一天（上次：%s，今天：%s）" % [SaveManager.last_played_date, today])
+
+	var has_planned = SaveManager.next_day_tasks.size() > 0
+	var use_planned = false
+
+	if has_planned:
+		use_planned = await _show_planned_tasks_prompt()
+
+	var planned_tasks = SaveManager.next_day_tasks.duplicate(true) if use_planned else []
+
 	global_day += 1
 	_sync_all_data()
 	todo_board.new_day_from_login()
+
+	if use_planned:
+		todo_board.load_planned_tasks_as_today(planned_tasks)
+
 	_save_to_save_manager()
-	
-	## 作弊面板用：前進或後退指定天數
+## 作弊面板用：前進或後退指定天數
 
 func cheat_advance_day(delta: int) -> void:
 	if delta > 0:
@@ -245,3 +266,84 @@ func cheat_advance_day(delta: int) -> void:
 		todo_board.update_day_navigation()
 	_sync_all_data()
 	_save_to_save_manager()
+
+## 新增提示方法 _show_planned_tasks_prompt()
+func _show_planned_tasks_prompt() -> bool:
+	var overlay = ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.80)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 200
+	add_child(overlay)
+
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.z_index = 201
+	add_child(center)
+
+	var panel = PanelContainer.new()
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color("#2C2C2C")
+	ps.corner_radius_top_left = 20
+	ps.corner_radius_top_right = 20
+	ps.corner_radius_bottom_left = 20
+	ps.corner_radius_bottom_right = 20
+	panel.add_theme_stylebox_override("panel", ps)
+	center.add_child(panel)
+
+	var pm = MarginContainer.new()
+	pm.add_theme_constant_override("margin_top", 40)
+	pm.add_theme_constant_override("margin_bottom", 40)
+	pm.add_theme_constant_override("margin_left", 50)
+	pm.add_theme_constant_override("margin_right", 50)
+	panel.add_child(pm)
+
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 24)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	pm.add_child(vb)
+
+	var title = Label.new()
+	title.text = "📋 發現預先規劃的任務！"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 26)
+	title.set("theme_override_colors/font_color", Color.GOLD)
+	vb.add_child(title)
+
+	var desc = Label.new()
+	desc.text = "你昨天已經預先規劃了今天的任務，\n要直接使用嗎？"
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.add_theme_font_size_override("font_size", 20)
+	desc.set("theme_override_colors/font_color", Color.WHITE)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.custom_minimum_size = Vector2(380, 0)
+	vb.add_child(desc)
+
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_hbox.add_theme_constant_override("separation", 30)
+	vb.add_child(btn_hbox)
+
+	var yes_btn = Button.new()
+	yes_btn.text = "✅ 使用規劃好的任務"
+	yes_btn.custom_minimum_size = Vector2(220, 50)
+	yes_btn.add_theme_font_size_override("font_size", 20)
+	yes_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
+	yes_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn_hbox.add_child(yes_btn)
+
+	var no_btn = Button.new()
+	no_btn.text = "❌ 不用，重新規劃"
+	no_btn.custom_minimum_size = Vector2(220, 50)
+	no_btn.add_theme_font_size_override("font_size", 20)
+	no_btn.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
+	no_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn_hbox.add_child(no_btn)
+
+	yes_btn.pressed.connect(func(): _planned_choice_made.emit(true))
+	no_btn.pressed.connect(func(): _planned_choice_made.emit(false))
+
+	var result = await _planned_choice_made
+
+	overlay.queue_free()
+	center.queue_free()
+	return result

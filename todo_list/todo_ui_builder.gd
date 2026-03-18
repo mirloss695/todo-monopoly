@@ -95,7 +95,13 @@ static func build(host: Control) -> Dictionary:
 	scroll_vbox.add_child(history_container)
 	refs["scroll_vbox"] = scroll_vbox
 	refs["history_container"] = history_container
-
+	
+	var next_day_container = VBoxContainer.new()
+	next_day_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	next_day_container.hide()
+	scroll_vbox.add_child(next_day_container)
+	refs["next_day_container"] = next_day_container
+	
 	main_vbox.add_child(scroll)
 
 	# --- 按鈕列 ---

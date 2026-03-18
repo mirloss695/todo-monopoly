@@ -151,6 +151,14 @@ func _build_ui():
 	day_hbox.add_child(next_day_btn)
 
 	vbox.add_child(day_hbox)
+	var sim_new_day_btn = Button.new()
+	sim_new_day_btn.text = "🧪 模擬換日（含提示）"
+	sim_new_day_btn.custom_minimum_size = Vector2(280, 36)
+	sim_new_day_btn.add_theme_font_size_override("font_size", 14)
+	sim_new_day_btn.set("theme_override_colors/font_color", Color.DARK_ORANGE)
+	sim_new_day_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	sim_new_day_btn.pressed.connect(_on_simulate_new_day)
+	vbox.add_child(sim_new_day_btn)
 
 	# --- 面板定位在右上角 ---
 	panel.position = Vector2(get_viewport().get_visible_rect().size.x - 380, 20)
@@ -268,4 +276,11 @@ func _on_prev_day():
 func _on_next_day():
 	if not main_ctrl: return
 	main_ctrl.cheat_advance_day(1)
+	_refresh_status()
+
+func _on_simulate_new_day():
+	if not main_ctrl: return
+	# 偽造 last_played_date 為昨天，再呼叫 _check_new_day
+	SaveManager.last_played_date = "1999-01-01"
+	await main_ctrl._check_new_day()
 	_refresh_status()

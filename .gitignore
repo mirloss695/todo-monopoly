@@ -1,5 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
-# *.import 不然中文會變亂碼
-# export_presets.cfg 不然沒法共享導出配置
+# *.import 註解掉不然中文會變亂碼
+# export_presets.cfg 註解掉不然沒法共享導出配置
+*.tmp
