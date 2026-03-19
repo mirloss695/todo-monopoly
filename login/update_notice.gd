@@ -7,7 +7,7 @@ class_name UpdateNotice
 const CURRENT_VERSION = "0.1.1"
 const CHANGELOG = [
 	"新增「明日任務預先規劃」功能",
-]
+] ## 已發布
 
 ## 檢查是否需要顯示，需要則彈窗並等待玩家關閉
 func try_show(host: Control) -> void:

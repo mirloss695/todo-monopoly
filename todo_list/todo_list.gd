@@ -33,7 +33,6 @@ var next_day_editing: bool = true
 var header_label: Label
 var limits_label: Label
 var score_label: Label
-var board_status_label: Label
 var tasks_container: VBoxContainer
 var history_container: VBoxContainer
 var btn_hbox: HBoxContainer
@@ -65,7 +64,6 @@ func _setup_ui():
 	header_label       = refs["header_label"]
 	limits_label       = refs["limits_label"]
 	score_label        = refs["score_label"]
-	board_status_label = refs["board_status_label"]
 	tasks_container    = refs["tasks_container"]
 	history_container  = refs["history_container"]
 	next_day_container = refs["next_day_container"]
@@ -115,7 +113,6 @@ func _show_today_view():
 	next_day_container.hide()
 	tasks_container.show()
 	btn_hbox.show()
-	board_status_label.show()
 	limits_label.show()
 	finish_btn.show()
 
@@ -134,7 +131,6 @@ func _show_next_day_view():
 	history_container.hide()
 	next_day_container.show()
 	btn_hbox.show()
-	board_status_label.show()
 	limits_label.show()
 	finish_btn.hide()
 
@@ -150,7 +146,6 @@ func _show_history_view():
 	tasks_container.hide()
 	next_day_container.hide()
 	btn_hbox.hide()
-	board_status_label.hide()
 
 	history_container.show()
 	await TodoHistory.build_view(history_container, current_view_day, task_history)
@@ -166,8 +161,6 @@ func _restore_today_btn_states():
 		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
 		toggle_save_btn.disabled = true
 		finish_btn.disabled = true
-		board_status_label.text = "✅ 已結算。目前可以隨時切換到其他板塊囉！"
-		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 	elif not is_editing:
 		# 已儲存但尚未結算
 		add_task_btn.disabled = true
@@ -175,8 +168,6 @@ func _restore_today_btn_states():
 		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
 		toggle_save_btn.disabled = false
 		finish_btn.disabled = false
-		board_status_label.text = "✅ 已儲存。目前可以隨時切換到其他板塊囉！"
-		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 	else:
 		# 編輯中
 		add_task_btn.disabled = false
@@ -184,8 +175,6 @@ func _restore_today_btn_states():
 		toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		toggle_save_btn.disabled = false
 		finish_btn.disabled = true
-		board_status_label.text = "⚠️ 目前有未儲存的變更，無法轉跳板塊！"
-		board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 
 func _on_prev_day_pressed():
 	if current_view_day > 1:
@@ -287,9 +276,6 @@ func _on_toggle_save_pressed():
 		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
 		finish_btn.disabled = false
 
-		board_status_label.text = "✅ 已儲存。目前可以隨時切換到其他板塊囉！"
-		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
-
 		for row_data in task_rows:
 			TodoTaskRow.set_locked(row_data, true)
 
@@ -302,9 +288,6 @@ func _on_toggle_save_pressed():
 		toggle_save_btn.text = "💾 確認儲存"
 		toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		finish_btn.disabled = true
-
-		board_status_label.text = "⚠️ 任務修改中，儲存前無法轉跳板塊！"
-		board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 
 		for row_data in task_rows:
 			TodoTaskRow.set_locked(row_data, false)
@@ -337,8 +320,6 @@ func new_day_from_login():
 	toggle_save_btn.disabled = false
 	finish_btn.disabled = true
 	finish_btn.text = "🚩 結算今日得分"
-	board_status_label.text = "⚠️ 目前有未儲存的變更，無法轉跳板塊！"
-	board_status_label.set("theme_override_colors/font_color", Color.LIGHT_CORAL)
 	for row_data in task_rows:
 		row_data["row_node"].queue_free()
 	task_rows.clear()
@@ -388,8 +369,6 @@ func restore_tasks_from_save(tasks: Array, locked: bool, finished: bool, saved_s
 		add_task_btn.disabled = true
 		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
 		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
-		board_status_label.text = "✅ 已儲存。目前可以隨時切換到其他板塊囉！"
-		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		for row_data in task_rows:
 			TodoTaskRow.set_locked(row_data, true)
 
@@ -436,15 +415,11 @@ func _update_next_day_btn_states():
 		toggle_save_btn.text = "💾 確認儲存"
 		toggle_save_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 		toggle_save_btn.disabled = false
-		board_status_label.text = "📋 預先規劃模式：規劃明天的任務"
-		board_status_label.set("theme_override_colors/font_color", Color.LIGHT_SKY_BLUE)
 	else:
 		add_task_btn.disabled = true
 		toggle_save_btn.text = "✏️ 修改任務 (解鎖)"
 		toggle_save_btn.set("theme_override_colors/font_color", Color.WHITE)
 		toggle_save_btn.disabled = false
-		board_status_label.text = "✅ 明日任務已儲存"
-		board_status_label.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
 
 func _on_toggle_save_next_day():
 	if next_day_editing:
