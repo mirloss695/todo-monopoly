@@ -4,11 +4,9 @@ class_name UpdateNotice
 ## 若玩家已看過此版本的公告則自動跳過
 
 ## ── 在這裡編輯版本號與更新內容 ──
-const CURRENT_VERSION = "1.2.1.4"
+const CURRENT_VERSION = "0.1.1"
 const CHANGELOG = [
-	"🆕 新增「更新提示」功能，版本更新後登入會自動通知",
-	"🐛 修正機會格位置在跨日後可能重置的問題",
-	"⚡ 優化雲端存檔穩定性",
+	"新增「明日任務預先規劃」功能",
 ]
 
 ## 檢查是否需要顯示，需要則彈窗並等待玩家關閉
@@ -64,7 +62,7 @@ func _show_popup(host: Control) -> void:
 
 	# 標題
 	var title = Label.new()
-	title.text = "🎉 版本更新 v%s" % CURRENT_VERSION
+	title.text = "版本更新 v%s" % CURRENT_VERSION
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	title.set("theme_override_colors/font_color", Color.GOLD)
@@ -82,7 +80,7 @@ func _show_popup(host: Control) -> void:
 
 	# 確認按鈕
 	var ok_btn = Button.new()
-	ok_btn.text = "👍 了解！"
+	ok_btn.text = "朕知道了"
 	ok_btn.custom_minimum_size = Vector2(180, 50)
 	ok_btn.add_theme_font_size_override("font_size", 22)
 	ok_btn.set("theme_override_colors/font_color", Color.GREEN_YELLOW)
