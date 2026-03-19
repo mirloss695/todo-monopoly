@@ -35,6 +35,7 @@ func _ready():
 	map_board.hide()
 	profile_board.hide()
 	todo_board.show()
+	await UpdateNotice.new().try_show(self)
 
 	# 🛠️ 作弊面板（F12 開關）
 	cheat_panel = CheatPanel.new()

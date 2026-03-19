@@ -26,6 +26,7 @@ var is_day_locked: bool = false     # 是否已按「確認儲存」鎖定
 var is_day_finished: bool = false   # 是否已按「結算今日得分」
 var next_day_tasks: Array = []
 var is_next_day_locked: bool = false
+var last_seen_version: String = ""
 var today_total_score: int = 0      # 當天累計得分
 # ==========================================
 # 🔑 Session Token
@@ -138,7 +139,8 @@ func _build_save_dict() -> Dictionary:
 		"is_day_finished":    is_day_finished,
 		"today_total_score":  today_total_score, 
 		"next_day_tasks":      next_day_tasks,
-		"is_next_day_locked":  is_next_day_locked,
+		"is_next_day_locked":  is_next_day_locked, 
+		"last_seen_version":   last_seen_version,
 	}
 
 func _apply_save(data: Dictionary) -> void:
@@ -168,3 +170,4 @@ func _apply_save(data: Dictionary) -> void:
 	today_total_score  = int(data.get("today_total_score", 0))
 	next_day_tasks     = data.get("next_day_tasks", [])
 	is_next_day_locked = data.get("is_next_day_locked", false)
+	last_seen_version       = data.get("last_seen_version", "")
